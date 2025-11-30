@@ -1,0 +1,9 @@
+version: '3.8'
+services:
+  backend:
+    volumes:
+      - ./backend:/app:rw
+      - ./widget:/app/widget:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

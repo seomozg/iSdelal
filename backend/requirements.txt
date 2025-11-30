@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+requests
+beautifulsoup4
+qdrant-client==1.16.0
+numpy
+pydantic
+python-dotenv
+httpx
+tqdm
+openai
+pytest
+pytest-asyncio
+playwright
