@@ -9,25 +9,33 @@ client_openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 def query_and_build_context(query_embedding, collection_name="site_collection"):
     client_qdrant = get_qdrant_client()
 
-    res = client_qdrant.search(
-        collection_name=collection_name,
-        query_vector=query_embedding,
-        limit=TOP_K
-    )
+    # Use search_batch for REST API or direct search depending on version
+    try:
+        # For qdrant-client 1.x REST API
+        from qdrant_client.models import PointIdsList
+        res = client_qdrant.search(
+            collection_name=collection_name,
+            query_vector=query_embedding,
+            limit=TOP_K
+        )
+    except Exception as e:
+        print(f"Search failed: {e}")
+        return []
 
     snippets = []
-    for r in res:
-        # qdrant-client 1.x returns ScoredPoint objects with .payload and .score
-        payload = r.payload if hasattr(r, 'payload') else r.get('payload', {})
-        score = r.score if hasattr(r, 'score') else r.get('score')
-        
-        snippets.append(
-            {
-                "text": payload.get("text") if isinstance(payload, dict) else payload,
-                "url": payload.get("url") if isinstance(payload, dict) else "",
-                "score": score
-            }
-        )
+    if res:
+        for r in res:
+            # qdrant-client 1.x returns ScoredPoint objects with .payload and .score
+            payload = r.payload if hasattr(r, 'payload') else r.get('payload', {})
+            score = r.score if hasattr(r, 'score') else r.get('score')
+            
+            snippets.append(
+                {
+                    "text": payload.get("text") if isinstance(payload, dict) else str(payload),
+                    "url": payload.get("url") if isinstance(payload, dict) else "",
+                    "score": score
+                }
+            )
 
     return snippets
 
