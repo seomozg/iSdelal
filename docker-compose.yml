@@ -26,11 +26,13 @@ services:
     build: ./nginx
     container_name: rag-nginx
     ports:
-      - '8081:80'
+      - '80:80'
+      - '443:443'
     depends_on:
       - backend
     volumes:
       - ./widget:/usr/share/nginx/html/widget:ro
+      - ./frontend:/usr/share/nginx/html/frontend:ro
       - /etc/letsencrypt/live/test-domain.ru:/etc/nginx/certs:ro
 
 volumes:
