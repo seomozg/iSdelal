@@ -41,9 +41,18 @@ fi
 print_status "Stopping existing containers..."
 docker compose down
 
-# Build and start containers
-print_status "Building and starting containers..."
-docker compose up --build -d
+# Build and start containers in correct order
+print_status "Starting Qdrant..."
+docker compose up -d qdrant
+sleep 5
+
+print_status "Starting Backend..."
+docker compose up --build -d backend
+sleep 10
+
+print_status "Starting Nginx..."
+docker compose up --build -d nginx
+sleep 5
 
 if [ $? -ne 0 ]; then
     print_error "Failed to start containers"
@@ -51,8 +60,8 @@ if [ $? -ne 0 ]; then
 fi
 
 # Wait for services to start
-print_status "Waiting for services to start..."
-sleep 10
+print_status "Waiting for services to be ready..."
+sleep 5
 
 # Check backend health
 print_status "Checking backend health..."

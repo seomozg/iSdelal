@@ -33,17 +33,22 @@ cp backend/.env.example backend/.env
 
 ### 2. Launch Services
 ```bash
-# Build and start all services
-docker compose up --build
+# IMPORTANT: Start services in correct order!
+docker compose up -d qdrant
+sleep 5
+docker compose up --build -d backend
+sleep 10
+docker compose up --build -d nginx
 
-# Or run in background
-docker compose up -d --build
+# Check status
+docker compose ps
 ```
 
 ### 3. Access Interfaces
 - **Admin Interface**: http://localhost:8000/frontend/
 - **API Documentation**: http://localhost:8000/docs
-- **Direct API**: http://localhost:8000/api/health
+- **Direct API**: http://localhost:8000/health
+- **Production**: https://your-domain.com/health
 
 ## 📖 Documentation
 

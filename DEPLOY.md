@@ -83,11 +83,22 @@ nginx:
 
 ### 8. Первый запуск
 ```bash
-docker compose up --build -d
+# ВАЖНО: Запускайте сервисы ПО ПОРЯДКУ!
+docker compose up -d qdrant
+sleep 5
+docker compose up --build -d backend
+sleep 10
+docker compose up --build -d nginx
+
+# Проверьте статус
+docker compose ps
 
 # Проверьте логи
-docker compose logs -f backend
-docker compose logs -f qdrant
+docker compose logs backend
+docker compose logs nginx
+
+# Диагностика (если проблемы)
+./diagnose.sh
 ```
 
 ## Регулярный деплой (обновления)
@@ -210,10 +221,32 @@ docker compose up --build -d
 
 ## Troubleshooting
 
+**502 Bad Gateway (nginx не может найти backend):**
+```bash
+# Проверьте статус контейнеров
+docker compose ps
+
+# Если backend не запущен
+docker compose up -d backend
+sleep 5
+
+# Проверьте внутреннюю связь
+docker compose exec nginx curl http://backend:8000/health
+
+# Диагностика
+./diagnose.sh
+
+# Перезапуск по порядку
+docker compose down
+docker compose up -d qdrant && sleep 5
+docker compose up --build -d backend && sleep 10
+docker compose up --build -d nginx
+```
+
 **API не отвечает:**
 ```bash
 docker compose logs backend
-curl -v https://test-domain.ru/api/health
+curl -v https://test-domain.ru/health
 ```
 
 **Qdrant не подключается:**

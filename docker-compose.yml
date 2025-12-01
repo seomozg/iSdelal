@@ -9,6 +9,8 @@ services:
       - qdrant_storage:/qdrant/storage
     environment:
       - QDRANT__SERVICE__GRPC_PORT=6334
+    networks:
+      - app_network
 
   backend:
     build: ./backend
@@ -21,6 +23,8 @@ services:
     volumes:
       - ./widget:/app/widget:ro
       - ./frontend:/app/frontend:ro
+    networks:
+      - app_network
 
   nginx:
     build: ./nginx
@@ -34,6 +38,12 @@ services:
       - ./widget:/usr/share/nginx/html/widget:ro
       - ./frontend:/usr/share/nginx/html/frontend:ro
       - /etc/letsencrypt/live/test-domain.ru:/etc/nginx/certs:ro
+    networks:
+      - app_network
 
 volumes:
   qdrant_storage:
+
+networks:
+  app_network:
+    driver: bridge

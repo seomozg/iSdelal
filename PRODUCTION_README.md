@@ -22,11 +22,16 @@ nano .env  # Добавьте ваши API ключи
 cd ..
 sudo certbot certonly --standalone -d test-domain.ru -d www.test-domain.ru
 
-# 5. Запустите сервисы
-docker compose up --build -d
+# 5. Запустите сервисы ПО ПОРЯДКУ
+docker compose up -d qdrant
+sleep 5
+docker compose up --build -d backend
+sleep 10
+docker compose up --build -d nginx
 
 # 6. Проверьте работу
 curl https://test-domain.ru/health
+curl https://test-domain.ru/frontend/
 ```
 
 ## 🔧 Конфигурация для test-domain.ru
@@ -112,6 +117,28 @@ docker compose up --build -d
 
 ## 🆘 Troubleshooting
 
+### 502 Bad Gateway ошибка
+```bash
+# Проверьте статус контейнеров
+docker compose ps
+
+# Если backend не запущен:
+docker compose up -d backend
+sleep 5
+
+# Проверьте логи backend
+docker compose logs backend
+
+# Проверьте внутреннюю связь
+docker compose exec nginx curl -f http://backend:8000/health
+
+# Перезапустите все сервисы по порядку
+docker compose down
+docker compose up -d qdrant && sleep 5
+docker compose up --build -d backend && sleep 10
+docker compose up --build -d nginx
+```
+
 ### Сервис не запускается
 ```bash
 # Проверьте логи
@@ -119,6 +146,20 @@ docker compose logs backend
 
 # Проверьте переменные окружения
 docker compose exec backend env | grep -E "(OPENAI|API_KEY)"
+
+# Проверьте .env файл
+cd backend && cat .env
+```
+
+### Nginx не может найти backend
+```bash
+# Проверьте Docker сеть
+docker network ls
+docker network inspect isdelal_app_network
+
+# Перезапустите с новой сетью
+docker compose down
+docker compose up --build -d
 ```
 
 ### SSL проблемы
@@ -126,6 +167,9 @@ docker compose exec backend env | grep -E "(OPENAI|API_KEY)"
 # Продлить сертификаты
 sudo certbot renew
 docker compose restart nginx
+
+# Проверьте сертификаты
+ls -la /etc/letsencrypt/live/test-domain.ru/
 ```
 
 ### DNS проблемы
@@ -135,6 +179,16 @@ nslookup test-domain.ru
 
 # Проверьте сертификат
 openssl s_client -connect test-domain.ru:443 -servername test-domain.ru
+```
+
+### Очистка и перезапуск
+```bash
+# Полная очистка
+docker compose down -v
+docker system prune -a
+
+# Перезапуск
+docker compose up --build -d
 ```
 
 ## 📞 Поддержка
