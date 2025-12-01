@@ -82,7 +82,7 @@ async def chat(req: ChatRequest, x_api_key: str = Header(None)):
     snippets = query_and_build_context(q_emb, collection_name=req.collection)
     # 3) call LLM with context
     res = call_llm_with_context(req.question, snippets)
-    return {'answer': res['answer'], 'debug_prompt': res.get('prompt_used')}
+    return {'answer': res['answer']}
 
 @app.get('/health')
 async def health():
