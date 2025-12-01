@@ -31,6 +31,7 @@ services:
       - backend
     volumes:
       - ./widget:/usr/share/nginx/html/widget:ro
+      - /etc/letsencrypt/live/test-domain.ru:/etc/nginx/certs:ro
 
 volumes:
   qdrant_storage:
