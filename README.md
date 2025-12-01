@@ -1,347 +1,336 @@
-# iSdelal — Qdrant + FastAPI (OpenAI) + Nginx RAG Kit
+# iSdelal - AI-Powered RAG System
 
-Готовый комплект для локальной разработки и продакшена: Qdrant (вектор БД) + FastAPI backend (OpenAI embeddings + GPT-4.1) + Nginx (обратный прокси) + JS-виджет для встраивания на сайты.
+A complete Retrieval-Augmented Generation (RAG) system with Qdrant vector database, FastAPI backend, and an embeddable chat widget. Perfect for adding AI-powered Q&A to any website.
 
----
+## ✨ Features
 
-## 🚀 Начните отсюда!
+- **🔍 Semantic Search**: Qdrant-powered vector similarity search
+- **🤖 AI Chat**: OpenAI GPT integration with context-aware responses
+- **🕷️ Web Crawling**: Automated website content indexing
+- **💬 Chat Widget**: Ready-to-use JavaScript widget for websites
+- **🐳 Docker Ready**: Complete containerized setup
+- **📊 Admin Interface**: Web-based content management
+- **🔐 Secure**: API key authentication and CORS protection
 
-### 👉 **[GET_STARTED.md](./GET_STARTED.md)** ← ЧИТАЙТЕ СНАЧАЛА
+## 🚀 Quick Start
 
-Полная пошаговая инструкция:
-1. Локальная разработка
-2. GitHub setup
-3. Деплой на test-domain.ru
+### Prerequisites
+- Docker & Docker Compose
+- OpenAI API key
 
-**Или проверьте** [`STATUS.md`](./STATUS.md) для полного списка что было подготовлено.
-
----
-
-## 🚀 Быстрый старт
-
-### Локально (для разработки)
-See [`LOCAL_SETUP.md`](./LOCAL_SETUP.md) для пошаговой инструкции.
-
-**Короткая версия:**
-```powershell
-docker compose up --build
-# В другом терминале:
-docker compose logs -f backend
-```
-
-### На сервер test-domain.ru (деплой)
-See [`DEPLOY.md`](./DEPLOY.md) для полной инструкции по развертыванию.
-
-**Короткая версия:**
+### 1. Clone & Setup
 ```bash
-cd /opt/iSdelal
-git pull origin main
-docker compose up --build -d
+git clone <your-repo-url>
+cd isdelal
+
+# Copy environment template
+cp backend/.env.example backend/.env
+
+# Edit .env with your OpenAI API key
+# OPENAI_API_KEY=sk-your-key-here
+# API_KEY=your-random-secret-key
 ```
 
+### 2. Launch Services
+```bash
+# Build and start all services
+docker compose up --build
+
+# Or run in background
+docker compose up -d --build
+```
+
+### 3. Access Interfaces
+- **Admin Interface**: http://localhost:8000/frontend/
+- **API Documentation**: http://localhost:8000/docs
+- **Direct API**: http://localhost:8000/api/health
+
+## 📖 Documentation
+
+| File | Description |
+|------|-------------|
+| [`DEPLOY.md`](./DEPLOY.md) | Production deployment guide |
+| [`WIDGET_README.md`](./WIDGET_README.md) | Widget integration guide |
+| [`frontend/README.md`](./frontend/README.md) | Admin interface docs |
+| [`backend/.env.example`](./backend/.env.example) | Environment configuration |
+
 ---
 
-## 📋 Документация
-
-| Документ | Назначение |
-|----------|-----------|
-| [`LOCAL_SETUP.md`](./LOCAL_SETUP.md) | 🖥️ Локальная разработка на Windows/Mac/Linux |
-| [`DEPLOY.md`](./DEPLOY.md) | 🚀 Развертывание на test-domain.ru с HTTPS |
-| [`GITHUB_SETUP.md`](./GITHUB_SETUP.md) | 🐙 Настройка GitHub репозитория и Actions |
-| [`QUICK_COMMANDS.md`](./QUICK_COMMANDS.md) | ⚡ Шпаргалка с частыми командами |
-| [`backend/.env.example`](./backend/.env.example) | ⚙️ Переменные окружения |
-| [`backend/tests/test_api.py`](./backend/tests/test_api.py) | 🧪 Unit-тесты (11 тестов) |
-
----
-
-## 🏗️ Архитектура
+## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Клиент (браузер)                                           │
-│ Встроенный виджет: widget.js                               │
+│ Client (Browser)                                           │
+│ Embedded Widget: widget.js                                 │
 └────────────────────┬────────────────────────────────────────┘
-                     │ HTTP/HTTPS (POST /api/chat)
+                     │ HTTP/HTTPS (POST /chat)
                      │
 ┌────────────────────▼────────────────────────────────────────┐
-│ Nginx (Reverse Proxy) - Port 8081 (локально)              │
-│ - Проксирует /api/* → backend:8000                         │
-│ - Раздает статику /widget/*                                │
+│ FastAPI Backend - Port 8000                               │
+│ - AI chat endpoints                                        │
+│ - Content ingestion                                        │
+│ - Admin interface serving                                  │
 └────────────────────┬────────────────────────────────────────┘
                      │
         ┌────────────┴────────────┐
         │                         │
 ┌───────▼──────┐        ┌────────▼──────┐
-│ Backend      │        │ Qdrant        │
-│ FastAPI      │───────▶│ Vector DB     │
-│ Port 8000    │        │ Port 6333     │
+│ Qdrant       │        │ OpenAI API    │
+│ Vector DB    │        │ GPT-4.1       │
+│ Port 6333    │        │ Embeddings    │
 │              │        │               │
-│ /api/ingest  │        │ Collections   │
-│ /api/chat    │        │ & vectors     │
-│ /api/health  │        │               │
+│ Collections  │        │ text-emb-3-lge│
+│ Vectors      │        │               │
 └──────────────┘        └───────────────┘
 ```
 
+**Optional Nginx Layer:**
+- Reverse proxy for production
+- SSL termination
+- Load balancing
+- Static file serving
+
 ---
 
-## 📦 Структура проекта
+## 📁 Project Structure
 
 ```
 iSdelal/
-├── LOCAL_SETUP.md           ← 📖 Начните отсюда для локальной разработки
-├── DEPLOY.md                ← 🚀 Инструкция деплоя на test-domain.ru
-├── .gitignore               ← Игнорируем .env, __pycache__, и т.д.
-├── docker-compose.yml       ← Production конфиг
-├── docker-compose.override.yml ← Development (горячая перезагрузка)
+├── README.md                 # Main documentation
+├── DEPLOY.md                 # Production deployment
+├── WIDGET_README.md          # Widget integration guide
+├── .gitignore                # Git ignore rules
+├── docker-compose.yml        # Docker services config
 │
 ├── backend/
-│   ├── .env                 ← 🔐 Локальные переменные (в .gitignore)
-│   ├── .env.example         ← 📝 Шаблон для .env
-│   ├── requirements.txt      ← Python зависимости
-│   ├── Dockerfile           ← Docker образ для backend
+│   ├── .env.example          # Environment template
+│   ├── requirements.txt      # Python dependencies
+│   ├── Dockerfile           # Backend container
 │   ├── app/
-│   │   ├── main.py          ← 🚀 FastAPI точка входа
-│   │   ├── ingest.py        ← 🕷️ Краулер (Playwright + BeautifulSoup)
-│   │   ├── rag.py           ← 🔍 Поиск + промпт для LLM
-│   │   ├── qdrant_client.py ← 🗄️ Помощник для Qdrant
-│   │   └── utils.py         ← 🛠️ Утилиты (chunking и т.д.)
+│   │   ├── main.py          # FastAPI application
+│   │   ├── ingest.py        # Web crawler & indexing
+│   │   ├── rag.py           # Vector search & LLM prompts
+│   │   ├── qdrant_client.py # Qdrant database client
+│   │   └── utils.py         # Text processing utilities
 │   └── tests/
-│       └── test_api.py      ← 🧪 11 pytest тестов
+│       └── test_api.py      # API tests
+│
+├── frontend/
+│   ├── index.html           # Admin interface
+│   ├── script.js            # Frontend logic
+│   ├── styles.css           # Interface styling
+│   └── README.md            # Frontend docs
 │
 ├── widget/
-│   ├── widget.js            ← 💬 JS для встраивания чата на сайты
-│   └── widget.css           ← 🎨 Стили виджета
+│   ├── widget.js            # Chat widget for websites
+│   ├── widget.css           # Widget styling
+│   └── widget_example.html  # Widget demo page
 │
-├── nginx/
-│   ├── default.conf         ← ⚙️ Nginx конфигурация
-│   └── Dockerfile           ← Docker образ для nginx
-│
-└── .github/
-    ├── copilot-instructions.md ← 📌 Инструкции для AI помощников
-    └── workflows/
-        ├── tests.yml        ← ✅ GitHub Actions: запуск тестов
-        └── deploy.yml       ← 🚀 (опционально) автоматический деплой
+└── nginx/
+    ├── default.conf         # Nginx configuration
+    └── Dockerfile           # Nginx container
 ```
 
 ---
 
 ## 🔌 API Endpoints
 
-Все endpoints требуют заголовок `X-API-Key: <api_key>` (установите в `.env`).
+All endpoints require `X-API-Key` header authentication.
 
 ### Health Check
 ```bash
-GET /api/health
-# ✅ Ответ: {"status": "ok"}
+GET /health
+# Response: {"status": "ok"}
 ```
 
-### Инжект контента (индексирование)
-
-**Режим 1: Авто-краул сайта**
+### Collections Management
 ```bash
-curl -X POST "http://localhost:8081/api/ingest" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: your-api-key" \
-  -d '{
-    "url": "https://example.com",
-    "collection": "example_site"
-  }'
+GET /collections
+# List all available collections
+
+GET /collections/{name}
+# Get collection statistics
 ```
 
-**Режим 2: Конкретные URL**
+### Content Ingestion
+
+**Auto-crawl website:**
 ```bash
-curl -X POST "http://localhost:8081/api/ingest" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: your-api-key" \
-  -d '{
-    "urls": [
-      "https://example.com/page1",
-      "https://example.com/page2"
-    ],
-    "collection": "example_site"
-  }'
+POST /ingest
+Content-Type: application/json
+X-API-Key: your-api-key
+
+{
+  "url": "https://example.com",
+  "collection": "example_site"
+}
 ```
 
-### Чат с RAG
+**Specific URLs:**
 ```bash
-curl -X POST "http://localhost:8081/api/chat" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: your-api-key" \
-  -d '{
-    "question": "What is this website about?",
-    "collection": "example_site"
-  }'
+POST /ingest
+Content-Type: application/json
+X-API-Key: your-api-key
 
-# ✅ Ответ:
-# {
-#   "answer": "Based on the website...",
-#   "sources": ["https://example.com/page1", ...]
-# }
+{
+  "urls": [
+    "https://example.com/page1",
+    "https://example.com/page2"
+  ],
+  "collection": "example_site"
+}
+```
+
+### AI Chat
+```bash
+POST /chat
+Content-Type: application/json
+X-API-Key: your-api-key
+
+{
+  "question": "What is this website about?",
+  "collection": "example_site"
+}
+
+# Response:
+{
+  "answer": "Based on the website content..."
+}
+```
+
+### Check Ingestion Status
+```bash
+GET /ingest/status/{job_id}
+# Returns: {"status": "completed", "result": {...}}
 ```
 
 ---
 
-## 🧪 Тестирование
+## 🧪 Testing
 
-```powershell
-# Локально (с Python)
+Run the test suite:
+
+```bash
+# In container
+docker compose exec backend pytest tests/test_api.py -v
+
+# Or locally
 cd backend
 pip install -r requirements.txt
 pytest tests/test_api.py -v
-
-# Или в контейнере
-docker compose exec backend pytest tests/test_api.py -v
 ```
 
-**Что тестируется:**
-- ✅ API аутентификация (X-API-Key)
-- ✅ Health check
-- ✅ Инжект и поиск в Qdrant
-- ✅ Chat с LLM
-- ✅ Обработка ошибок
+**Test Coverage:**
+- ✅ API authentication (X-API-Key)
+- ✅ Health check endpoints
+- ✅ Content ingestion & Qdrant indexing
+- ✅ AI chat with RAG
+- ✅ Error handling
 
----
+## ⚙️ Configuration
 
-## ⚙️ Переменные окружения
-
-Скопируйте `backend/.env.example` в `backend/.env` и отредактируйте:
+Copy `.env.example` to `.env` and configure:
 
 ```bash
-# backend/.env
-OPENAI_API_KEY=sk-...              # Ключ OpenAI API
-API_KEY=your-strong-secret-key     # Секрет для X-API-Key header
-QDRANT_HOST=qdrant                 # Хост Qdrant (в Docker: "qdrant")
-QDRANT_PORT=6333                   # Порт Qdrant
-EMBED_MODEL=text-embedding-3-large # OpenAI embedding модель
-RAG_TOP_K=5                         # Макс контекстные фрагменты для LLM
-CRAWL_MAX_PAGES=50                 # Макс страниц при авто-крауле
-CRAWL_TIMEOUT=30                   # Таймаут на странице (сек)
-USE_PLAYWRIGHT=true                # Рендеринг JS через Playwright
+# Required
+OPENAI_API_KEY=sk-your-openai-key-here
+API_KEY=your-random-secret-key
+
+# Optional (defaults shown)
+QDRANT_HOST=qdrant
+QDRANT_PORT=6333
+EMBED_MODEL=text-embedding-3-large
+RAG_TOP_K=5
+CRAWL_MAX_PAGES=50
+CRAWL_TIMEOUT=30
+USE_PLAYWRIGHT=true
 ```
 
 ---
 
-## 🛠️ Разработка
+## 💬 Widget Integration
 
-### Горячая перезагрузка backend
+Add the AI chat widget to any website:
 
-Backend автоматически перезагружается при изменении `backend/app/*.py` благодаря `docker-compose.override.yml`:
-
-```powershell
-# Изменяете файл → uvicorn автоматически перезагружает
-# Смотрите логи:
-docker compose logs -f backend
-
-# Нет необходимости перезапускать контейнер!
-```
-
-### Добавление нового эндпоинта
-
-1. Добавьте маршрут в `backend/app/main.py`:
-```python
-@app.post("/api/my-endpoint")
-async def my_endpoint(req: MyRequest):
-    # Ваш код
-    return {"result": "..."}
-```
-
-2. Протестируйте локально
-3. Добавьте тест в `backend/tests/test_api.py`
-4. Коммитьте и пушьте в Git
-5. Создайте PR на GitHub
-6. После merge → автоматический деплой на test-domain.ru
-
----
-
-## 📚 Интеграция виджета на сайт
-
-**На вашем сайте:**
 ```html
+<!-- Configure the widget -->
 <script>
-  // Инициализация перед загрузкой скрипта
-  window.AIWidgetConfig = {
-    apiBase: 'https://test-domain.ru',      // Или http://localhost:8081 локально
-    collection: 'my_site_collection',       // Имя коллекции в Qdrant
-    apiKey: 'your-api-key'                  // Секрет из X-API-Key
-  };
+window.AIWidgetConfig = {
+  apiBase: 'http://localhost:8000',        // Your API URL
+  collection: 'court_craze',               // Collection name
+  apiKey: 'your-api-key',                  // From .env API_KEY
+  title: 'AI Assistant',                   // Widget title
+  welcomeMessage: 'Hello! How can I help?' // Welcome message
+};
 </script>
 
-<!-- Загрузите виджет -->
-<script src="https://test-domain.ru/widget/widget.js"></script>
-
-<!-- Кнопка для открытия чата (опционально) -->
-<button onclick="window.AIWidget.toggle()">💬 Ask AI</button>
+<!-- Load the widget -->
+<script src="http://localhost:8000/widget/widget.js"></script>
 ```
 
-**Или программно:**
+**Available Collections:**
+- `court_craze` - Padel tennis (13 chunks)
+- `joyreactor_multi` - Entertainment (16 chunks)
+- `tbank_multi` - Banking services (14 chunks)
+
+**Programmatic Control:**
 ```javascript
+// Initialize
 AIWidget.init({
-  apiBase: 'https://test-domain.ru',
-  collection: 'my_site_collection',
-  apiKey: 'your-api-key'
+  collection: 'court_craze',
+  title: 'Sports AI'
 });
+
+// Toggle visibility
+AIWidget.toggle();
+
+// Send message
+AIWidget.sendMessage('Hello AI!');
 ```
 
 ---
 
-## 🔐 Безопасность
+## 🔐 Security
 
-- ✅ Все endpoints требуют `X-API-Key` header
-- ✅ `.env` файл в `.gitignore` (никогда не коммитьте секреты!)
-- ✅ HTTPS на production (Let's Encrypt сертификаты)
-- ✅ Rate limiting (опционально, настраивается в Nginx)
-- ✅ CORS политика (настраивается в `nginx/default.conf`)
-
----
+- ✅ API key authentication required for all endpoints
+- ✅ Environment variables never committed (.env in .gitignore)
+- ✅ CORS protection configured
+- ✅ No sensitive data in repository
 
 ## 🚨 Troubleshooting
 
-| Проблема | Решение |
-|----------|---------|
-| `docker compose up` не работает | Убедитесь, что Docker Desktop запущен |
-| API не отвечает | `docker compose logs backend` |
-| Горячая перезагрузка не работает | `docker compose restart backend` |
-| Qdrant потерял данные | `docker compose down -v` удалит всё! Используйте `docker compose down` для сохранения |
-| OPENAI_API_KEY ошибка | Проверьте `backend/.env`, перезагрузите: `docker compose restart backend` |
-| Сертификат Let's Encrypt истёк | Запустите `sudo certbot renew` на сервере |
+| Issue | Solution |
+|-------|----------|
+| `docker compose up` fails | Ensure Docker Desktop is running |
+| API not responding | Check `docker compose logs backend` |
+| Hot reload not working | Restart with `docker compose restart backend` |
+| Qdrant data lost | Use `docker compose down` (not `down -v`) to preserve data |
+| OpenAI API errors | Verify `OPENAI_API_KEY` in `.env` |
 
-**Полная диагностика:**
+**Full Diagnostics:**
 ```bash
-docker compose ps              # Статус контейнеров
-docker compose logs backend    # Логи backend
-docker compose logs qdrant     # Логи Qdrant
-curl http://localhost:8081/api/health  # Проверка API
+docker compose ps              # Container status
+docker compose logs backend    # Backend logs
+docker compose logs qdrant     # Qdrant logs
+curl http://localhost:8000/health  # API health check
 ```
 
----
+## 📄 License
 
-## 📝 Лицензия
+MIT License - see repository for details.
 
-MIT
+## 🤝 Contributing
 
----
+1. Fork the repository
+2. Create a feature branch
+3. Add tests for new functionality
+4. Ensure all tests pass
+5. Submit a pull request
 
-## 🎯 Следующие шаги
+## 📞 Support
 
-1. **Локально**: 
-   - See [`LOCAL_SETUP.md`](./LOCAL_SETUP.md)
-   - Запустите: `docker compose up --build`
-   - Тестируйте API
-
-2. **На GitHub**:
-   - Инициализируйте репозиторий: `git init`
-   - Добавьте secrets в GitHub Settings:
-     - `OPENAI_API_KEY` (для GitHub Actions тестов)
-     - `DEPLOY_KEY` (опционально, для автоматического деплоя)
-
-3. **На сервер test-domain.ru**:
-   - See [`DEPLOY.md`](./DEPLOY.md)
-   - Следуйте инструкциям настройки HTTPS
-   - Первый деплой: `git clone + docker compose up`
-   - Обновления: `git pull + docker compose up --build -d`
-
----
-
-**Вопросы?** Смотрите документацию или откройте Issue на GitHub.
+- 📖 **Documentation**: Check the `/docs` folder
+- 🐛 **Issues**: Open a GitHub issue
+- 💬 **Discussions**: Use GitHub Discussions for questions
 
 

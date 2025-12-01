@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG System - Content Ingestion & Widget Generator</title>
+    <link rel="stylesheet" href="/frontend/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 RAG System</h1>
+            <p>Content Ingestion & AI Chat Widget Generator</p>
+        </header>
+
+        <main>
+            <section class="ingestion-section">
+                <h2>📥 Content Ingestion</h2>
+
+                <div class="form-group">
+                    <label for="url-input">Website URL:</label>
+                    <input type="url" id="url-input" placeholder="https://example.com"
+                           value="https://www.tbank.ru/">
+                    <small>Enter a website URL to crawl and index for AI chat</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="collection-input">Collection Name:</label>
+                    <input type="text" id="collection-input" placeholder="my_collection"
+                           value="tbank_demo">
+                    <small>Choose a name for this content collection</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="urls-input">Multiple URLs (optional):</label>
+                    <textarea id="urls-input" rows="3" placeholder="https://example.com/page1
+https://example.com/page2
+https://example.com/page3"></textarea>
+                    <small>Enter multiple URLs (one per line) for targeted ingestion</small>
+                </div>
+
+                <button id="ingest-btn" class="btn btn-primary">
+                    🚀 Start Ingestion
+                </button>
+            </section>
+
+            <section class="status-section">
+                <h2>📊 Ingestion Status</h2>
+
+                <div id="status-container">
+                    <div class="status-item">
+                        <span class="status-label">Status:</span>
+                        <span id="status-text" class="status-value">Ready</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Job ID:</span>
+                        <span id="job-id" class="status-value">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Progress:</span>
+                        <span id="progress-text" class="status-value">-</span>
+                    </div>
+                </div>
+
+                <div id="logs-container">
+                    <h3>📝 Activity Log</h3>
+                    <div id="logs" class="logs-area">
+                        <div class="log-entry">System ready. Enter a URL to begin ingestion.</div>
+                    </div>
+                </div>
+
+                <div id="collections-container">
+                    <h3>📚 Available Collections</h3>
+                    <div id="collections-list" class="collections-grid">
+                        <div class="collection-loading">Loading collections...</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="widget-section">
+                <h2>🎨 AI Chat Widget</h2>
+
+                <div class="widget-config">
+                    <div class="form-group">
+                        <label for="widget-collection">Collection:</label>
+                        <select id="widget-collection">
+                            <option value="tbank_multi">T-Bank Services (14 chunks)</option>
+                            <option value="joyreactor_multi">JoyReactor Entertainment (16 chunks)</option>
+                            <option value="court_craze">Padel Tennis (13 chunks)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="widget-title">Widget Title:</label>
+                        <input type="text" id="widget-title" value="AI Assistant">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="widget-message">Welcome Message:</label>
+                        <input type="text" id="widget-message" value="Hello! How can I help you?">
+                    </div>
+                </div>
+
+                <div class="code-output">
+                    <h3>📋 Integration Code</h3>
+                    <p>Copy and paste this code into your website's &lt;head&gt; section:</p>
+
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode()">📋 Copy</button>
+                        <pre id="widget-code">&lt;script&gt;
+window.AIWidgetConfig = {
+  apiBase: 'http://localhost:8000',
+  collection: 'tbank_multi',
+  apiKey: 'aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5',
+  title: 'AI Assistant',
+  language: 'en',
+  welcomeMessage: 'Hello! How can I help you?'
+};
+&lt;/script&gt;
+&lt;script src="http://localhost:8000/widget/widget.js"&gt;&lt;/script&gt;</pre>
+                    </div>
+                </div>
+
+                <div class="preview-section">
+                    <h3>👁️ Preview</h3>
+                    <p>The widget will appear as a chat bubble in the bottom-right corner of your website.</p>
+                    <div class="preview-note">
+                        💡 <strong>Test it:</strong> The widget is already active on this page!
+                        Look for the purple chat bubble in the bottom-right corner.
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Built with FastAPI, Qdrant, and OpenAI</p>
+        </footer>
+    </div>
+
+    <script src="/frontend/static/script.js"></script>
+</body>
+</html>

@@ -1,13 +1,34 @@
 from fastapi import FastAPI, HTTPException, Header, BackgroundTasks
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import os
 from typing import Optional, List
 from .ingest import ingest_url, ingest_urls, crawl_site, ingest_background, _get_job_status, _create_job, embed_texts
-import asyncio
+from .qdrant_client import get_qdrant_client
 import uuid
 from .rag import query_and_build_context, call_llm_with_context
 
 app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for development
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
+
+# Mount static files
+app.mount("/widget", StaticFiles(directory="/app/widget"), name="widget")
+app.mount("/frontend/static", StaticFiles(directory="/app/frontend"), name="frontend_static")
+
+# Serve frontend index.html when accessing /frontend/
+@app.get("/frontend/")
+async def serve_frontend_index():
+    return FileResponse("/app/frontend/index.html", media_type="text/html")
 
 class IngestRequest(BaseModel):
     url: Optional[str] = None
@@ -83,6 +104,36 @@ async def chat(req: ChatRequest, x_api_key: str = Header(None)):
     # 3) call LLM with context
     res = call_llm_with_context(req.question, snippets)
     return {'answer': res['answer']}
+
+@app.get('/collections')
+async def get_collections():
+    """Get list of available collections from Qdrant."""
+    try:
+        client = get_qdrant_client()
+        collections_response = client.get_collections()
+        return {
+            "collections": [
+                {"name": col.name} for col in collections_response.collections
+            ]
+        }
+    except Exception as e:
+        print(f"Error getting collections: {e}")
+        return {"collections": []}
+
+@app.get('/collections/{collection_name}')
+async def get_collection_info(collection_name: str):
+    """Get information about a specific collection."""
+    try:
+        client = get_qdrant_client()
+        collection_info = client.get_collection(collection_name)
+        return {
+            "name": collection_name,
+            "points_count": collection_info.points_count,
+            "indexed_vectors_count": collection_info.indexed_vectors_count if hasattr(collection_info, 'indexed_vectors_count') else 0
+        }
+    except Exception as e:
+        print(f"Error getting collection info for {collection_name}: {e}")
+        raise HTTPException(status_code=404, detail=f"Collection {collection_name} not found")
 
 @app.get('/health')
 async def health():

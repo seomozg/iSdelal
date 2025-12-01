@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Widget Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .code-block {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Chat Widget Integration</h1>
+
+        <h2>🚀 Quick Start</h2>
+        <p>Add this script tag to your website:</p>
+
+        <div class="code-block">
+&lt;script&gt;
+// Configure the widget
+window.AIWidgetConfig = {
+  apiBase: 'https://your-domain.com/api',
+  collection: 'your_collection_name',
+  apiKey: 'your_api_key_here',
+  title: 'AI Assistant',
+  language: 'en', // or 'ru'
+  welcomeMessage: 'Hello! How can I help you today?'
+};
+&lt;/script&gt;
+
+&lt;script src="https://your-domain.com/widget/widget.js"&gt;&lt;/script&gt;
+        </div>
+
+        <h2>⚙️ Configuration Options</h2>
+        <div class="code-block">
+window.AIWidgetConfig = {
+  // API Settings
+  apiBase: 'https://your-domain.com/api',        // API endpoint
+  apiKey: 'your_api_key',                        // Authentication key
+  collection: 'site_collection',                 // Knowledge base collection
+
+  // UI Settings
+  title: 'AI Assistant',                         // Widget title
+  placeholder: 'Ask me anything...',             // Input placeholder
+  position: 'bottom-right',                      // bottom-right, bottom-left, top-right, top-left
+  theme: 'default',                              // default, dark
+  language: 'en',                                // en, ru
+
+  // Behavior
+  welcomeMessage: 'Hello! How can I help?',      // Auto-show message
+  maxMessages: 50                                // Message history limit
+};
+        </div>
+
+        <h2>🎮 API Methods</h2>
+        <div class="code-block">
+// Initialize with new settings
+AIWidget.init({
+  title: 'New Title',
+  collection: 'new_collection'
+});
+
+// Send a message programmatically
+AIWidget.sendMessage('Hello AI!');
+
+// Toggle widget visibility
+AIWidget.toggle();
+
+// Check if widget is open
+console.log(AIWidget.isOpen());
+        </div>
+
+        <h2>🎨 Styling</h2>
+        <p>The widget automatically loads its CSS. For custom styling:</p>
+        <div class="code-block">
+/* Override widget styles */
+.ai-widget-card {
+  border-radius: 20px !important;
+}
+
+.ai-widget-toggle {
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4) !important;
+}
+        </div>
+
+        <h2>🌐 Multi-language Support</h2>
+        <p>Built-in support for English and Russian:</p>
+        <div class="code-block">
+window.AIWidgetConfig = {
+  language: 'ru'  // Russian interface
+};
+
+// Available languages: 'en', 'ru'
+        </div>
+
+        <p><strong>Note:</strong> The AI widget will appear in the configured position. Click the chat icon to open it!</p>
+    </div>
+
+    <!-- Widget Integration -->
+    <script>
+    // Production-ready configuration
+    window.AIWidgetConfig = {
+      apiBase: 'http://localhost:8000',
+      collection: 'tbank_multi', // Available: tbank_multi (14 chunks), joyreactor_multi (16 chunks), court_craze (13 chunks)
+      apiKey: 'aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5',
+      title: 'AI Assistant',
+      language: 'en',
+      welcomeMessage: 'Hi! I can help you with banking, entertainment, sports, and more!',
+      position: 'bottom-right'
+    };
+    </script>
+    <script src="http://localhost:8000/widget/widget.js"></script>
+
+    <div style="margin-top: 100px; text-align: center; color: white;">
+        <h2>Widget Integration Test</h2>
+        <p>The AI chat widget should appear in the bottom-right corner of this page.</p>
+        <p>Click the chat bubble icon to start a conversation!</p>
+        <div style="margin-top: 20px; font-size: 14px;">
+            <p><strong>Available collections:</strong></p>
+            <ul style="display: inline-block; text-align: left;">
+                <li><code>court_craze</code> - Padel tennis information</li>
+                <li><code>joyreactor_single</code> - Entertainment content</li>
+                <li><code>wba_exsportia</code> - Sports facilities</li>
+                <li><code>tbank</code> - Banking services</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

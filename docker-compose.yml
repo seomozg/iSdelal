@@ -20,6 +20,7 @@ services:
       - qdrant
     volumes:
       - ./widget:/app/widget:ro
+      - ./frontend:/app/frontend:ro
 
   nginx:
     build: ./nginx

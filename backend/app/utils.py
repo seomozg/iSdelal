@@ -9,7 +9,7 @@ def html_to_text(html: str) -> str:
     text = re.sub(r"\s+", ' ', text)
     return text
 
-def chunk_text(text: str, chunk_size: int = 800, overlap: int = 200):
+def chunk_text(text: str, chunk_size: int = 300, overlap: int = 50):
     words = text.split()
     chunks = []
     i = 0
