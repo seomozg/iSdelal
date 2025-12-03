@@ -7,13 +7,16 @@ import os
 from urllib.parse import urljoin, urlparse
 from collections import deque
 import asyncio
+import time
 from typing import Dict, Any
 
 EMBED_MODEL = os.getenv("EMBED_MODEL", "text-embedding-3-large")
 CRAWL_MAX_PAGES = int(os.getenv("CRAWL_MAX_PAGES", 50))
+PLAYWRIGHT_MAX_PAGES = int(os.getenv("PLAYWRIGHT_MAX_PAGES", 30))
 CRAWL_TIMEOUT = int(os.getenv("CRAWL_TIMEOUT", 30))
 NAVIGATION_TIMEOUT = int(os.getenv("NAVIGATION_TIMEOUT", 60))
 USE_PLAYWRIGHT = os.getenv("USE_PLAYWRIGHT", "true").lower() == "true"
+INGEST_TIMEOUT_SECONDS = int(os.getenv("INGEST_TIMEOUT_SECONDS", 600))  # global timeout per ingest job
 
 client_openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -25,7 +28,31 @@ def _get_job_status(job_id: str) -> Dict[str, Any]:
     """Get status of a background ingest job."""
     if job_id not in _ingest_jobs:
         return {"status": "not_found"}
-    return _ingest_jobs[job_id]
+    job = _ingest_jobs[job_id]
+    # Safety net: if job is still marked as running but has exceeded the global
+    # ingest timeout since creation, mark it as failed here so that callers
+    # never see an endlessly running job.
+    try:
+        if job.get("status") == "running":
+            created_at = job.get("created_at")
+            # Legacy jobs without created_at are treated as stale and failed
+            if created_at is None:
+                created_at = time.time() - (INGEST_TIMEOUT_SECONDS + 1)
+                job["created_at"] = created_at
+            elapsed = time.time() - created_at
+            if elapsed > INGEST_TIMEOUT_SECONDS:
+                msg = (
+                    f"Ingest job {job_id} exceeded {INGEST_TIMEOUT_SECONDS} "
+                    f"seconds (actual ~{int(elapsed)}s); marking as failed by status check"
+                )
+                job["status"] = "failed"
+                job["error"] = msg
+                if "progress" in job and isinstance(job["progress"], dict):
+                    job["progress"]["message"] = msg
+    except Exception:
+        # Never let status retrieval fail because of this safety logic.
+        pass
+    return job
 
 
 def _create_job(job_id: str, mode: str, target: str) -> None:
@@ -34,6 +61,7 @@ def _create_job(job_id: str, mode: str, target: str) -> None:
         "status": "pending",
         "mode": mode,  # "url", "urls", or "crawl"
         "target": target,  # URL or list representation
+        "created_at": time.time(),  # for safety timeout in status endpoint
         "progress": {
             "pages_fetched": 0,
             "chunks_extracted": 0,
@@ -85,7 +113,7 @@ async def fetch_with_playwright(url: str, timeout: int = CRAWL_TIMEOUT) -> str:
         return await asyncio.to_thread(_requests_get, url, timeout)
 
 
-async def runtime_crawl(start_url: str, max_pages: int = CRAWL_MAX_PAGES, timeout: int = CRAWL_TIMEOUT):
+async def runtime_crawl(start_url: str, max_pages: int = PLAYWRIGHT_MAX_PAGES, timeout: int = CRAWL_TIMEOUT, job_id: str | None = None):
     """
     Use Playwright to explore a single-page app at runtime.
     - opens pages in headless browser
@@ -114,6 +142,11 @@ async def runtime_crawl(start_url: str, max_pages: int = CRAWL_MAX_PAGES, timeou
             if url in visited:
                 continue
             try:
+                # Progress: about to open URL with Playwright
+                if job_id in _ingest_jobs:
+                    _ingest_jobs[job_id]["progress"].update({
+                        "message": f"Playwright: opening {url}...",
+                    })
                 # primary attempt: wait for networkidle
                 try:
                     await page.goto(url, timeout=NAVIGATION_TIMEOUT * 1000, wait_until="networkidle")
@@ -135,6 +168,12 @@ async def runtime_crawl(start_url: str, max_pages: int = CRAWL_MAX_PAGES, timeou
             try:
                 html = await page.content()
                 results.append((page.url, html))
+                # Progress: successfully crawled a page via Playwright
+                if job_id in _ingest_jobs:
+                    _ingest_jobs[job_id]["progress"].update({
+                        "pages_fetched": len(results),
+                        "message": f"Playwright: crawled {len(results)}/{max_pages} page(s)...",
+                    })
             except Exception:
                 results.append((url, ""))
 
@@ -167,7 +206,7 @@ async def runtime_crawl(start_url: str, max_pages: int = CRAWL_MAX_PAGES, timeou
                 for sel in clickable_selectors:
                     elements = await page.query_selector_all(sel)
                     for el in elements:
-                        if clicks >= 20 or len(results) >= max_pages:
+                        if clicks >= 10 or len(results) >= max_pages:
                             break
                         try:
                             before = page.url
@@ -222,9 +261,14 @@ async def crawl_site(start_url: str, max_pages: int = CRAWL_MAX_PAGES, timeout: 
                 "pages_fetched": len(pages)
             })
         try:
-            r = requests.get(url, timeout=timeout, allow_redirects=True)
-            r.raise_for_status()
-            html_content = r.text
+            # Run blocking requests.get in a thread so that the async ingest task
+            # remains cancellable by asyncio.wait_for (global ingest timeout).
+            def _fetch(u, t):
+                r = requests.get(u, timeout=t, allow_redirects=True)
+                r.raise_for_status()
+                return r.text
+
+            html_content = await asyncio.to_thread(_fetch, url, timeout)
             pages.append((url, html_content))
 
             # After successful fetch, bump pages_fetched
@@ -258,7 +302,7 @@ async def crawl_site(start_url: str, max_pages: int = CRAWL_MAX_PAGES, timeout: 
     # 2) Fallback to Playwright runtime crawl if static crawl failed to get anything
     if USE_PLAYWRIGHT:
         print("Static crawl found no pages, trying Playwright runtime crawler...")
-        pages = await runtime_crawl(start_url, max_pages=max_pages, timeout=timeout)
+        pages = await runtime_crawl(start_url, max_pages=PLAYWRIGHT_MAX_PAGES, timeout=timeout, job_id=job_id)
 
     return pages
 
@@ -540,15 +584,25 @@ async def ingest_background(job_id: str, url: str = None, urls: list = None, col
     try:
         _ingest_jobs[job_id]["status"] = "running"
 
-        if urls:
-            res = await ingest_urls(urls, collection_name=collection_name, job_id=job_id)
-        elif url:
-            res = await ingest_url(url, collection_name=collection_name, job_id=job_id)
-        else:
-            raise ValueError("Either url or urls must be provided")
-        
-        _ingest_jobs[job_id]["status"] = "completed"
-        _ingest_jobs[job_id]["result"] = res
+        async def _run_ingest():
+            if urls:
+                return await ingest_urls(urls, collection_name=collection_name, job_id=job_id)
+            elif url:
+                return await ingest_url(url, collection_name=collection_name, job_id=job_id)
+            else:
+                raise ValueError("Either url or urls must be provided")
+
+        try:
+            res = await asyncio.wait_for(_run_ingest(), timeout=INGEST_TIMEOUT_SECONDS)
+            _ingest_jobs[job_id]["status"] = "completed"
+            _ingest_jobs[job_id]["result"] = res
+        except asyncio.TimeoutError:
+            msg = f"Ingest job {job_id} timed out after {INGEST_TIMEOUT_SECONDS} seconds"
+            print(msg)
+            _ingest_jobs[job_id]["status"] = "failed"
+            _ingest_jobs[job_id]["error"] = msg
+            if job_id in _ingest_jobs:
+                _ingest_jobs[job_id]["progress"]["message"] = msg
     except Exception as e:
         print(f"Background ingest job {job_id} failed: {e}")
         _ingest_jobs[job_id]["status"] = "failed"

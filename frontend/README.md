@@ -2,18 +2,18 @@
 
 A modern web interface for the RAG (Retrieval-Augmented Generation) system that allows users to:
 
-- 🚀 **Ingest website content** through URL input or multi-URL submission
-- 📊 **Monitor ingestion progress** with real-time status updates and logs
+- 🚀 **Ingest website content** through a single URL input
+- 📊 **Monitor ingestion progress** with detailed status and logs
 - 🎨 **Generate AI chat widgets** with customizable configuration
-- 📚 **View available collections** with statistics
+- 📚 **View available collections** (from Qdrant) with statistics
 
 ## Features
 
 ### Content Ingestion
 - **Single URL Crawling**: Enter one URL to crawl the entire website
-- **Multi-URL Ingestion**: Submit multiple specific URLs for targeted content
-- **Real-time Progress**: Live status updates during ingestion
-- **Activity Logging**: Detailed logs of the ingestion process
+- **Auto-generated collection name**: Collection is derived from the domain (e.g. `https://www.moose-farm.ru/` → `moose_farm_ru`)
+- **Detailed Progress**: Status shows phase and counters (pages fetched, chunks, embeddings, points)
+- **Activity Logging**: Timestamped log entries for each step of ingestion
 
 ### Widget Generation
 - **Custom Configuration**: Set collection, title, welcome message
@@ -42,27 +42,22 @@ A modern web interface for the RAG (Retrieval-Augmented Generation) system that 
 
 ### Ingesting Content
 
-1. **Enter a website URL** in the URL field
-2. **Choose a collection name** (e.g., "my_website")
+1. **Enter a website URL** in the URL field (e.g. `https://www.moose-farm.ru/`)
+2. Коллекция будет **сгенерирована автоматически** из домена и сохранена в скрытом поле
 3. **Click "Start Ingestion"**
-4. **Monitor progress** in the status section
-5. **View logs** for detailed activity
-
-### Alternative: Multi-URL Ingestion
-
-For more control, use the multi-URL approach:
-
-1. **Leave URL field empty**
-2. **Enter multiple URLs** in the textarea (one per line)
-3. **Choose collection name**
-4. **Start ingestion**
+4. **Monitor progress** in the status section:
+   - статус джобы (`pending/running/completed/failed`)
+   - Job ID
+   - строка `Progress` с фазой и счётчиками
+5. **View logs** for detailed activity (все действия с метками времени)
 
 ### Generating Widgets
 
-1. **Select a collection** from the dropdown
+1. **Select a collection** from the dropdown (список берётся из `/collections` в Qdrant)
 2. **Customize title and welcome message**
-3. **Copy the generated code**
-4. **Paste into your website's HTML**
+3. **Copy the generated code** из блока `Integration Code`
+4. **Paste into your website's HTML** — это подключит чат‑виджет, который будет использовать выбранную коллекцию
+5. Демо‑виджет на этой же странице автоматически обновляется под выбранную коллекцию и настройки
 
 ## API Integration
 
@@ -121,8 +116,8 @@ The interface is fully customizable:
 - Monitor logs for specific error messages
 
 ### Widget Code Not Working
-- Ensure collection exists and has content
-- Check API key configuration
+- Ensure collection exists and has content (проверь раздел *Available Collections*)
+- Check API key configuration (значение `API_KEY` в `backend/.env`)
 - Verify backend CORS settings
 
 ## Security Notes

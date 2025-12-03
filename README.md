@@ -21,42 +21,43 @@ A complete Retrieval-Augmented Generation (RAG) system with Qdrant vector databa
 ### 1. Clone & Setup
 ```bash
 git clone <your-repo-url>
-cd isdelal
+cd iSdelal
 
 # Copy environment template
 cp backend/.env.example backend/.env
 
-# Edit .env with your OpenAI API key
+# Edit .env with your keys
 # OPENAI_API_KEY=sk-your-key-here
 # API_KEY=your-random-secret-key
 ```
 
-### 2. Launch Services
+### 2. Launch Services (single compose)
 ```bash
-# IMPORTANT: Start services in correct order!
-docker compose up -d qdrant
-sleep 5
-docker compose up --build -d backend
-sleep 10
-docker compose up --build -d nginx
+docker compose up -d --build
 
 # Check status
 docker compose ps
+
+# Health check
+curl http://localhost:8000/health
 ```
 
-### 3. Access Interfaces
-- **Admin Interface**: http://localhost:8000/frontend/
-- **API Documentation**: http://localhost:8000/docs
-- **Direct API**: http://localhost:8000/health
-- **Production**: https://your-domain.com/health
+### 3. Use the UI
+
+- **Frontend / Admin**: http://localhost:8000/frontend/
+  - Вводишь один URL сайта
+  - Нажимаешь "Start Ingestion"
+  - Следишь за статусом краулинга и логами
+  - Видишь реальные коллекции из Qdrant
+  - Генерируешь код чат‑виджета под выбранную коллекцию
+- **API Docs**: http://localhost:8000/docs
+- **Health**: http://localhost:8000/health
 
 ## 📖 Documentation
 
 | File | Description |
 |------|-------------|
-| [`DEPLOY.md`](./DEPLOY.md) | Production deployment guide |
-| [`WIDGET_README.md`](./WIDGET_README.md) | Widget integration guide |
-| [`frontend/README.md`](./frontend/README.md) | Admin interface docs |
+| [`frontend/README.md`](./frontend/README.md) | Admin interface docs (UI details) |
 | [`backend/.env.example`](./backend/.env.example) | Environment configuration |
 
 ---
@@ -102,38 +103,31 @@ docker compose ps
 ```
 iSdelal/
 ├── README.md                 # Main documentation
-├── DEPLOY.md                 # Production deployment
-├── WIDGET_README.md          # Widget integration guide
 ├── .gitignore                # Git ignore rules
-├── docker-compose.yml        # Docker services config
+├── docker-compose.yml        # Docker services config (backend + Qdrant)
 │
 ├── backend/
 │   ├── .env.example          # Environment template
 │   ├── requirements.txt      # Python dependencies
-│   ├── Dockerfile           # Backend container
+│   ├── Dockerfile            # Backend container
 │   ├── app/
-│   │   ├── main.py          # FastAPI application
-│   │   ├── ingest.py        # Web crawler & indexing
-│   │   ├── rag.py           # Vector search & LLM prompts
-│   │   ├── qdrant_client.py # Qdrant database client
-│   │   └── utils.py         # Text processing utilities
+│   │   ├── main.py           # FastAPI application (API + /frontend/ + /widget)
+│   │   ├── ingest.py         # Web crawler & indexing
+│   │   ├── rag.py            # Vector search & LLM prompts
+│   │   ├── qdrant_client.py  # Qdrant database client
+│   │   └── utils.py          # Text processing utilities
 │   └── tests/
-│       └── test_api.py      # API tests
+│       └── test_api.py       # API tests
 │
 ├── frontend/
-│   ├── index.html           # Admin interface
-│   ├── script.js            # Frontend logic
-│   ├── styles.css           # Interface styling
-│   └── README.md            # Frontend docs
+│   ├── index.html            # Admin / ingestion / widget UI
+│   ├── script.js             # Frontend logic, status polling, widget code
+│   ├── styles.css            # Interface styling
+│   └── README.md             # Frontend docs
 │
-├── widget/
-│   ├── widget.js            # Chat widget for websites
-│   ├── widget.css           # Widget styling
-│   └── widget_example.html  # Widget demo page
-│
-└── nginx/
-    ├── default.conf         # Nginx configuration
-    └── Dockerfile           # Nginx container
+└── widget/
+    ├── widget.js             # Embeddable chat widget
+    └── widget.css            # Widget styling
 ```
 
 ---
@@ -159,7 +153,7 @@ GET /collections/{name}
 
 ### Content Ingestion
 
-**Auto-crawl website:**
+**Авто-краулинг сайта (один URL):**
 ```bash
 POST /ingest
 Content-Type: application/json
@@ -167,22 +161,7 @@ X-API-Key: your-api-key
 
 {
   "url": "https://example.com",
-  "collection": "example_site"
-}
-```
-
-**Specific URLs:**
-```bash
-POST /ingest
-Content-Type: application/json
-X-API-Key: your-api-key
-
-{
-  "urls": [
-    "https://example.com/page1",
-    "https://example.com/page2"
-  ],
-  "collection": "example_site"
+  "collection": "example_com"
 }
 ```
 
@@ -206,7 +185,21 @@ X-API-Key: your-api-key
 ### Check Ingestion Status
 ```bash
 GET /ingest/status/{job_id}
-# Returns: {"status": "completed", "result": {...}}
+# Returns: {
+#   "status": "running" | "completed" | "failed",
+#   "progress": {
+#     "message": "Crawling from https://...",
+#     "pages_fetched": 10,
+#     "chunks_extracted": 120,
+#     "embeddings_created": 120,
+#     "points_upserted": 120
+#   },
+#   "result": {
+#     "pages_crawled": 50,
+#     "chunks_indexed": 197,
+#     ...
+#   }
+# }
 ```
 
 ---
@@ -255,17 +248,17 @@ USE_PLAYWRIGHT=true
 
 ## 💬 Widget Integration
 
-Add the AI chat widget to any website:
+После того как ты проингестил сайт и появилась коллекция (например, `moose_farm_ru`), виджет подключается так:
 
 ```html
 <!-- Configure the widget -->
 <script>
 window.AIWidgetConfig = {
-  apiBase: 'http://localhost:8000',        // Your API URL
-  collection: 'court_craze',               // Collection name
-  apiKey: 'your-api-key',                  // From .env API_KEY
-  title: 'AI Assistant',                   // Widget title
-  welcomeMessage: 'Hello! How can I help?' // Welcome message
+  apiBase: 'http://localhost:8000',        // Backend URL
+  collection: 'moose_farm_ru',             // Имя коллекции из Qdrant
+  apiKey: 'your-api-key',                  // Из backend/.env -> API_KEY
+  title: 'AI Assistant',                   // Заголовок виджета
+  welcomeMessage: 'Hello! How can I help?' // Приветственное сообщение
 };
 </script>
 
@@ -273,25 +266,7 @@ window.AIWidgetConfig = {
 <script src="http://localhost:8000/widget/widget.js"></script>
 ```
 
-**Available Collections:**
-- `court_craze` - Padel tennis (13 chunks)
-- `joyreactor_multi` - Entertainment (16 chunks)
-- `tbank_multi` - Banking services (14 chunks)
-
-**Programmatic Control:**
-```javascript
-// Initialize
-AIWidget.init({
-  collection: 'court_craze',
-  title: 'Sports AI'
-});
-
-// Toggle visibility
-AIWidget.toggle();
-
-// Send message
-AIWidget.sendMessage('Hello AI!');
-```
+Код выше автоматически генерируется на странице `http://localhost:8000/frontend/` в блоке **AI Chat Widget**. Ты выбираешь коллекцию, настраиваешь заголовок и приветствие — и просто копируешь готовый `<script>`‑блок.
 
 ---
 
