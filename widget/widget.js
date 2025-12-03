@@ -3,12 +3,8 @@
 
   // Configuration with defaults
   const config = {
-    apiBase: window.AIWidgetConfig?.apiBase || (location.origin + '/api'),
-    collection: window.AIWidgetConfig?.collection || 'site_collection',
-    apiKey: window.AIWidgetConfig?.apiKey || '',
-    title: window.AIWidgetConfig?.title || 'AI Assistant',
-    placeholder: window.AIWidgetConfig?.placeholder || 'Ask me anything...',
-    position: window.AIWidgetConfig?.position || 'bottom-right',
+    // Our FastAPI backend is mounted at the origin, so default apiBase is just location.origin
+    apiBase: window.AIWidgetConfig?.apiBase || location.origin,
     theme: window.AIWidgetConfig?.theme || 'default',
     language: window.AIWidgetConfig?.language || 'en',
     welcomeMessage: window.AIWidgetConfig?.welcomeMessage || null,

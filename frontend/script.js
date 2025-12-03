@@ -1,5 +1,28 @@
 // RAG Frontend JavaScript
 class RAGFrontend {
+    // Function to generate collection name from URL
+    generateCollectionName(rawUrl) {
+        try {
+            let normalized = rawUrl.trim();
+
+            // If user entered domain without scheme (moose-farm.ru or www.moose-farm.ru),
+            // prepend https:// so that URL() doesn't throw.
+            if (!/^https?:\/\//i.test(normalized)) {
+                normalized = 'https://' + normalized;
+            }
+
+            const parsed = new URL(normalized);
+            const domain = parsed.hostname.replace(/^www\./, ''); // Remove www. prefix
+
+            // Generate collection name from domain
+            const collectionName = domain.replace(/[^a-zA-Z0-9]/g, '_'); // Replace non-alphanumeric with underscore
+
+            return collectionName.toLowerCase();
+        } catch (error) {
+            console.error('Error generating collection name:', error, 'for input:', rawUrl);
+            return 'default_collection';
+        }
+    }
     constructor() {
         this.apiBase = 'http://localhost:8000';
         this.currentJobId = null;
@@ -11,12 +34,55 @@ class RAGFrontend {
         this.bindEvents();
         this.loadCollections();
         this.updateWidgetCode();
+        this.restoreJobFromStorage();
         this.addLogEntry('System initialized. Ready for content ingestion.');
+    }
+
+    restoreJobFromStorage() {
+        try {
+            const storedJobId = localStorage.getItem('rag_current_job_id');
+            if (!storedJobId) return;
+
+            this.currentJobId = storedJobId;
+
+            // single status check to see if job is still active
+            fetch(`${this.apiBase}/ingest/status/${this.currentJobId}`, {
+                headers: {
+                    'X-API-Key': 'aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5'
+                }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    this.updateStatusDisplay(data);
+
+                    if (data.status === 'running') {
+                        this.addLogEntry(`Resumed monitoring job ${this.currentJobId}.`);
+                        this.startStatusChecking();
+                    } else {
+                        // job already finished, clear stored id
+                        localStorage.removeItem('rag_current_job_id');
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to restore job from storage:', err);
+                });
+        } catch (e) {
+            console.error('Error accessing localStorage:', e);
+        }
     }
 
     bindEvents() {
         // Ingestion form
         document.getElementById('ingest-btn').addEventListener('click', () => this.startIngestion());
+        
+        // Auto-update collection name when URL changes
+        document.getElementById('url-input').addEventListener('input', (e) => {
+            const url = e.target.value.trim();
+            if (url) {
+                const collectionName = this.generateCollectionName(url);
+                document.getElementById('collection-input').value = collectionName;
+            }
+        });
 
         // Widget configuration
         document.getElementById('widget-collection').addEventListener('change', () => this.updateWidgetCode());
@@ -33,13 +99,15 @@ class RAGFrontend {
 
     async startIngestion() {
         const urlInput = document.getElementById('url-input').value.trim();
-        const urlsInput = document.getElementById('urls-input').value.trim();
-        const collectionInput = document.getElementById('collection-input').value.trim();
-
-        if (!urlInput && !urlsInput) {
-            this.showError('Please enter at least one URL');
+        
+        if (!urlInput) {
+            this.showError('Please enter a URL');
             return;
         }
+
+        // Generate collection name from URL
+        const collectionInput = this.generateCollectionName(urlInput);
+        document.getElementById('collection-input').value = collectionInput;
 
         if (!collectionInput) {
             this.showError('Please enter a collection name');
@@ -48,16 +116,9 @@ class RAGFrontend {
 
         // Prepare request data
         const requestData = {
-            collection: collectionInput
+            collection: collectionInput,
+            url: urlInput
         };
-
-        if (urlsInput) {
-            // Multiple URLs
-            requestData.urls = urlsInput.split('\n').map(url => url.trim()).filter(url => url);
-        } else {
-            // Single URL (crawling)
-            requestData.url = urlInput;
-        }
 
         try {
             this.setStatus('running', 'Starting ingestion...');
@@ -76,6 +137,11 @@ class RAGFrontend {
 
             if (response.ok) {
                 this.currentJobId = data.job_id;
+                try {
+                    localStorage.setItem('rag_current_job_id', this.currentJobId);
+                } catch (e) {
+                    console.error('Failed to persist job id:', e);
+                }
                 this.addLogEntry(`✅ Ingestion job started with ID: ${this.currentJobId}`);
                 this.startStatusChecking();
             } else {
@@ -109,8 +175,17 @@ class RAGFrontend {
                     clearInterval(this.statusCheckInterval);
                     this.statusCheckInterval = null;
 
+                    // clear stored job id when job finishes
+                    try {
+                        localStorage.removeItem('rag_current_job_id');
+                    } catch (e) {
+                        console.error('Failed to clear job id from storage:', e);
+                    }
+
                     if (data.status === 'completed') {
-                        this.addLogEntry(`🎉 Ingestion completed! ${data.result.pages_indexed} pages, ${data.result.chunks_indexed} chunks indexed.`, 'success');
+                        const pages = data.result.pages_indexed ?? data.result.pages_crawled ?? 0;
+                        const chunks = data.result.chunks_indexed ?? 0;
+                        this.addLogEntry(`🎉 Ingestion completed! ${pages} pages, ${chunks} chunks indexed.`, 'success');
                         this.loadCollections(); // Refresh collections list
                     } else {
                         this.addLogEntry(`❌ Ingestion failed: ${data.error}`, 'error');
@@ -120,7 +195,7 @@ class RAGFrontend {
                 console.error('Status check error:', error);
                 this.addLogEntry(`⚠️ Status check failed: ${error.message}`, 'warning');
             }
-        }, 2000); // Check every 2 seconds
+        }, 60000); // Check every 60 seconds
     }
 
     updateStatusDisplay(data) {
@@ -135,17 +210,47 @@ class RAGFrontend {
         // Update job ID
         jobIdText.textContent = this.currentJobId || '-';
 
-        // Update progress
-        if (data.result) {
-            progressText.textContent = `${data.result.pages_indexed || 0} pages, ${data.result.chunks_indexed || 0} chunks`;
+        // Update progress (detailed) with timestamp
+        const now = new Date().toLocaleTimeString();
+
+        if (data.progress) {
+            const p = data.progress;
+
+            const parts = [];
+
+            if (p.message) {
+                parts.push(p.message);
+            }
+
+            // numeric counters from backend progress
+            parts.push(
+                `Pages fetched: ${p.pages_fetched ?? 0}`,
+                `Chunks extracted: ${p.chunks_extracted ?? 0}`,
+                `Embeddings created: ${p.embeddings_created ?? 0}`,
+                `Points upserted: ${p.points_upserted ?? 0}`
+            );
+
+            progressText.textContent = `[${now}] ` + parts.join(' | ');
+        } else if (data.result) {
+            // Fallback to final result summary if no incremental progress
+            const pages = data.result.pages_indexed || data.result.pages_crawled || 0;
+            const chunks = data.result.chunks_indexed || 0;
+            progressText.textContent = `[${now}] Indexed: ${pages} pages, ${chunks} chunks`;
         } else {
-            progressText.textContent = 'In progress...';
+            progressText.textContent = `[${now}] In progress...`;
         }
     }
 
     async loadCollections() {
         try {
-            const response = await fetch(`${this.apiBase.replace('/api', '')}/collections`);
+            const collectionsList = document.getElementById('collections-list');
+            const widgetCollectionSelect = document.getElementById('widget-collection');
+
+            // Show loading state
+            collectionsList.innerHTML = '<div class="collection-loading">Loading collections...</div>';
+            widgetCollectionSelect.innerHTML = '<option value="">Loading collections...</option>';
+
+            const response = await fetch(`${this.apiBase}/collections`);
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -153,20 +258,34 @@ class RAGFrontend {
 
             const data = await response.json();
 
-            const collectionsList = document.getElementById('collections-list');
+            // Clear existing
             collectionsList.innerHTML = '';
+            widgetCollectionSelect.innerHTML = '';
 
             if (data.collections && data.collections.length > 0) {
                 data.collections.forEach(collection => {
+                    // Card in list
                     this.addCollectionCard(collection.name);
+
+                    // Option in widget select
+                    const option = document.createElement('option');
+                    option.value = collection.name;
+                    option.textContent = collection.name;
+                    widgetCollectionSelect.appendChild(option);
                 });
+
+                // Ensure widget code reflects current selection
+                this.updateWidgetCode();
             } else {
                 collectionsList.innerHTML = '<div class="collection-loading">No collections found</div>';
+                widgetCollectionSelect.innerHTML = '<option value="">No collections available</option>';
             }
         } catch (error) {
             console.error('Error loading collections:', error);
             document.getElementById('collections-list').innerHTML =
                 '<div class="collection-loading">Error loading collections</div>';
+            document.getElementById('widget-collection').innerHTML =
+                '<option value="">Error loading collections</option>';
         }
     }
 
@@ -240,6 +359,18 @@ window.AIWidgetConfig = {
 <script src="${this.apiBase}/widget/widget.js"></script>`;
 
         document.getElementById('widget-code').textContent = code;
+
+        // Also update live widget on this page, if it is loaded
+        if (window.AIWidget && typeof window.AIWidget.init === 'function') {
+            window.AIWidget.init({
+                apiBase: this.apiBase,
+                collection,
+                apiKey: 'aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5',
+                title,
+                language: 'en',
+                welcomeMessage: message
+            });
+        }
     }
 
     setStatus(status, text) {

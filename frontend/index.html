@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RAG System - Content Ingestion & Widget Generator</title>
     <link rel="stylesheet" href="/frontend/static/styles.css">
+    <link rel="stylesheet" href="/widget/widget.css">
 </head>
 <body>
     <div class="container">
@@ -24,20 +25,8 @@
                     <small>Enter a website URL to crawl and index for AI chat</small>
                 </div>
 
-                <div class="form-group">
-                    <label for="collection-input">Collection Name:</label>
-                    <input type="text" id="collection-input" placeholder="my_collection"
-                           value="tbank_demo">
-                    <small>Choose a name for this content collection</small>
-                </div>
-
-                <div class="form-group">
-                    <label for="urls-input">Multiple URLs (optional):</label>
-                    <textarea id="urls-input" rows="3" placeholder="https://example.com/page1
-https://example.com/page2
-https://example.com/page3"></textarea>
-                    <small>Enter multiple URLs (one per line) for targeted ingestion</small>
-                </div>
+                <!-- Collection name is auto-generated from URL and handled in JavaScript -->
+                <input type="hidden" id="collection-input">
 
                 <button id="ingest-btn" class="btn btn-primary">
                     🚀 Start Ingestion
@@ -84,9 +73,7 @@ https://example.com/page3"></textarea>
                     <div class="form-group">
                         <label for="widget-collection">Collection:</label>
                         <select id="widget-collection">
-                            <option value="tbank_multi">T-Bank Services (14 chunks)</option>
-                            <option value="joyreactor_multi">JoyReactor Entertainment (16 chunks)</option>
-                            <option value="court_craze">Padel Tennis (13 chunks)</option>
+                            <option value="">Loading collections...</option>
                         </select>
                     </div>
 
@@ -131,6 +118,10 @@ window.AIWidgetConfig = {
                 </div>
             </section>
         </main>
+
+        <!-- Widget Embedding -->
+        <script src="/widget/widget.js"></script>
+        <link rel="stylesheet" href="/widget/widget.css">
 
         <footer>
             <p>Built with FastAPI, Qdrant, and OpenAI</p>

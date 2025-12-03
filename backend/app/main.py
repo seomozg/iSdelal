@@ -12,12 +12,14 @@ from .rag import query_and_build_context, call_llm_with_context
 
 app = FastAPI()
 
-# Add CORS middleware
+# Add CORS middleware - more secure configuration
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8080,http://localhost:8000").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "OPTIONS"],  # Added GET for frontend route
     allow_headers=["*"],
 )
 

@@ -34,7 +34,13 @@ def _create_job(job_id: str, mode: str, target: str) -> None:
         "status": "pending",
         "mode": mode,  # "url", "urls", or "crawl"
         "target": target,  # URL or list representation
-        "progress": {"pages_fetched": 0, "chunks_extracted": 0, "embeddings_created": 0, "points_upserted": 0},
+        "progress": {
+            "pages_fetched": 0,
+            "chunks_extracted": 0,
+            "embeddings_created": 0,
+            "points_upserted": 0,
+            "message": "Pending"
+        },
         "error": None,
         "result": None
     }
@@ -191,25 +197,15 @@ async def runtime_crawl(start_url: str, max_pages: int = CRAWL_MAX_PAGES, timeou
     return results
 
 
-async def crawl_site(start_url: str, max_pages: int = CRAWL_MAX_PAGES, timeout: int = CRAWL_TIMEOUT):
-    """
-    Crawl a website starting from start_url, following same-domain links.
-    If Playwright runtime crawling is enabled, prefer that for SPAs.
-
-    Returns: list of (url, html_content) tuples, max max_pages pages.
-    """
-    if USE_PLAYWRIGHT:
-        print("Using Playwright runtime crawler...")
-        pages = await runtime_crawl(start_url, max_pages=max_pages, timeout=timeout)
-        if pages:
-            return pages
-        # fallback to static crawl if runtime crawl returned nothing
-
-    # Static request-based crawl
+async def crawl_site(start_url: str, max_pages: int = CRAWL_MAX_PAGES, timeout: int = CRAWL_TIMEOUT, job_id: str | None = None):
+    """\n+    Crawl a website starting from start_url, following same-domain links.\n+\n+    Strategy:\n+    1) Try simple HTTP crawl via requests (fast, cheap).\n+    2) If it finds no pages and USE_PLAYWRIGHT is enabled, fallback to Playwright runtime crawler.\n+\n+    Returns: list of (url, html_content) tuples, max max_pages pages.\n+    """
+    # 1) Static request-based crawl first
     visited = set()
     to_visit = deque([start_url])
     pages = []
     start_domain = urlparse(start_url).netloc
+
+    print("Trying static HTTP crawl first...")
 
     while to_visit and len(pages) < max_pages:
         url = to_visit.popleft()
@@ -218,11 +214,25 @@ async def crawl_site(start_url: str, max_pages: int = CRAWL_MAX_PAGES, timeout: 
         if urlparse(url).netloc != start_domain:
             continue
         visited.add(url)
+
+        # Update progress before fetching URL
+        if job_id in _ingest_jobs:
+            _ingest_jobs[job_id]["progress"].update({
+                "message": f"Fetching {url}...",
+                "pages_fetched": len(pages)
+            })
         try:
             r = requests.get(url, timeout=timeout, allow_redirects=True)
             r.raise_for_status()
             html_content = r.text
             pages.append((url, html_content))
+
+            # After successful fetch, bump pages_fetched
+            if job_id in _ingest_jobs:
+                _ingest_jobs[job_id]["progress"].update({
+                    "pages_fetched": len(pages),
+                    "message": f"Fetched {len(pages)} page(s), discovering links..."
+                })
             try:
                 from bs4 import BeautifulSoup
                 soup = BeautifulSoup(html_content, 'html.parser')
@@ -236,25 +246,55 @@ async def crawl_site(start_url: str, max_pages: int = CRAWL_MAX_PAGES, timeout: 
                 print(f"Warning: Failed to extract links from {url}: {e}")
         except Exception as e:
             print(f"Warning: Failed to fetch {url}: {e}")
+            if job_id in _ingest_jobs:
+                _ingest_jobs[job_id]["progress"].update({
+                    "message": f"Failed to fetch {url}: {e}"  # keep pages_fetched as is
+                })
             continue
+
+    if pages:
+        return pages
+
+    # 2) Fallback to Playwright runtime crawl if static crawl failed to get anything
+    if USE_PLAYWRIGHT:
+        print("Static crawl found no pages, trying Playwright runtime crawler...")
+        pages = await runtime_crawl(start_url, max_pages=max_pages, timeout=timeout)
 
     return pages
 
 
-
-async def ingest_url(url: str, collection_name: str = "site_collection"):
+async def ingest_url(url: str, collection_name: str = "site_collection", job_id: str | None = None):
     """
     Crawl site starting from url and index ALL pages to a single collection.
     Collection is created once; subsequent calls add/update pages.
     """
     # 1. Crawl the site
     print(f"Starting crawl from {url} (max {CRAWL_MAX_PAGES} pages)...")
-    pages = await crawl_site(url, max_pages=CRAWL_MAX_PAGES, timeout=CRAWL_TIMEOUT)
+    if job_id in _ingest_jobs:
+        _ingest_jobs[job_id]["progress"].update({
+            "message": f"Crawling from {url}...",
+            "pages_fetched": 0,
+            "chunks_extracted": 0,
+            "embeddings_created": 0,
+            "points_upserted": 0,
+        })
+
+    pages = await crawl_site(url, max_pages=CRAWL_MAX_PAGES, timeout=CRAWL_TIMEOUT, job_id=job_id)
     
     if not pages:
+        if job_id in _ingest_jobs:
+            _ingest_jobs[job_id]["progress"].update({
+                "message": "No pages crawled",
+                "pages_fetched": 0
+            })
         return {"status": "error", "detail": "No pages crawled"}
     
     print(f"Crawled {len(pages)} page(s), now processing...")
+    if job_id in _ingest_jobs:
+        _ingest_jobs[job_id]["progress"].update({
+            "pages_fetched": len(pages),
+            "message": f"Processing {len(pages)} page(s)..."
+        })
     
     # 2. Collect all chunks and their metadata across all pages
     all_chunks = []
@@ -266,19 +306,38 @@ async def ingest_url(url: str, collection_name: str = "site_collection"):
             chunks = chunk_text(text)
             all_chunks.extend(chunks)
             all_urls.extend([page_url] * len(chunks))
+
+            if job_id in _ingest_jobs:
+                _ingest_jobs[job_id]["progress"].update({
+                    "chunks_extracted": len(all_chunks),
+                    "message": f"Extracting chunks... ({len(all_chunks)} so far)"
+                })
         except Exception as e:
             print(f"Warning: Failed to process {page_url}: {e}")
             continue
     
     if not all_chunks:
+        if job_id in _ingest_jobs:
+            _ingest_jobs[job_id]["progress"].update({
+                "message": "No chunks extracted from pages"
+            })
         return {"status": "error", "detail": "No chunks extracted from pages"}
     
     print(f"Total chunks extracted: {len(all_chunks)}")
 
     # 3. Create embeddings for all chunks (run sync embedding in thread)
     print("Creating embeddings...")
+    if job_id in _ingest_jobs:
+        _ingest_jobs[job_id]["progress"]["message"] = "Creating embeddings..."
+
     embeddings = await asyncio.to_thread(embed_texts, all_chunks)
     vector_size = len(embeddings[0]) if embeddings else 1536
+
+    if job_id in _ingest_jobs:
+        _ingest_jobs[job_id]["progress"].update({
+            "embeddings_created": len(embeddings),
+            "message": "Connecting to Qdrant..."
+        })
     
     # 4. Connect to Qdrant
     client_qdrant = get_qdrant_client()
@@ -324,6 +383,8 @@ async def ingest_url(url: str, collection_name: str = "site_collection"):
     
     # 7. Upsert points (update or insert)
     print(f"Upserting {len(points)} points to Qdrant...")
+    if job_id in _ingest_jobs:
+        _ingest_jobs[job_id]["progress"]["message"] = f"Upserting {len(points)} points to Qdrant..."
     client_qdrant.upsert(
         collection_name=collection_name,
         points=points
@@ -332,6 +393,12 @@ async def ingest_url(url: str, collection_name: str = "site_collection"):
     # 8. Get final collection stats
     collection_info = client_qdrant.get_collection(collection_name)
     points_count = collection_info.points_count
+
+    if job_id in _ingest_jobs:
+        _ingest_jobs[job_id]["progress"].update({
+            "points_upserted": len(points),
+            "message": "Completed indexing"
+        })
     
     return {
         "status": "ok",
@@ -472,11 +539,11 @@ async def ingest_background(job_id: str, url: str = None, urls: list = None, col
     """
     try:
         _ingest_jobs[job_id]["status"] = "running"
-        
+
         if urls:
-            res = await ingest_urls(urls, collection_name=collection_name)
+            res = await ingest_urls(urls, collection_name=collection_name, job_id=job_id)
         elif url:
-            res = await ingest_url(url, collection_name=collection_name)
+            res = await ingest_url(url, collection_name=collection_name, job_id=job_id)
         else:
             raise ValueError("Either url or urls must be provided")
         
