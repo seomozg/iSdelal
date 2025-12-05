@@ -88,6 +88,9 @@ class RAGFrontend {
         document.getElementById('widget-collection').addEventListener('change', () => this.updateWidgetCode());
         document.getElementById('widget-title').addEventListener('input', () => this.updateWidgetCode());
         document.getElementById('widget-message').addEventListener('input', () => this.updateWidgetCode());
+        document.getElementById('widget-color').addEventListener('input', () => this.updateWidgetCode());
+        document.getElementById('widget-send-text').addEventListener('input', () => this.updateWidgetCode());
+        document.getElementById('widget-placeholder').addEventListener('input', () => this.updateWidgetCode());
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
@@ -345,6 +348,9 @@ class RAGFrontend {
         const collection = document.getElementById('widget-collection').value;
         const title = document.getElementById('widget-title').value;
         const message = document.getElementById('widget-message').value;
+        const color = document.getElementById('widget-color').value;
+        const sendText = document.getElementById('widget-send-text').value;
+        const placeholder = document.getElementById('widget-placeholder').value;
 
         const code = `<script>
 window.AIWidgetConfig = {
@@ -353,7 +359,10 @@ window.AIWidgetConfig = {
   apiKey: 'aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5',
   title: '${title}',
   language: 'en',
-  welcomeMessage: '${message}'
+  welcomeMessage: '${message}',
+  color: '${color}',
+  sendText: '${sendText}',
+  placeholder: '${placeholder}'
 };
 </script>
 <script src="${this.apiBase}/widget/widget.js"></script>`;
@@ -368,7 +377,10 @@ window.AIWidgetConfig = {
                 apiKey: 'aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5',
                 title,
                 language: 'en',
-                welcomeMessage: message
+                welcomeMessage: message,
+                color,
+                sendText,
+                placeholder
             });
         }
     }

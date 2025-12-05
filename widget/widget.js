@@ -8,7 +8,7 @@
     collection: window.AIWidgetConfig?.collection || 'default_collection',
     apiKey: window.AIWidgetConfig?.apiKey || 'your-api-key',
     theme: window.AIWidgetConfig?.theme || 'default',
-    language: window.AIWidgetConfig?.language || 'en',
+    language: window.AIWidgetConfig?.language || 'ru',
     position: window.AIWidgetConfig?.position || 'bottom-right',
     welcomeMessage: window.AIWidgetConfig?.welcomeMessage || null,
     maxMessages: window.AIWidgetConfig?.maxMessages || 50
@@ -79,7 +79,7 @@
           <div class="ai-widget-messages" id="ai-messages"></div>
           <div class="ai-widget-input-row">
             <input id="ai-input" class="ai-widget-input" placeholder="${config.placeholder}" />
-            <button id="ai-send" class="ai-widget-btn">${t.send}</button>
+            <button id="ai-send" class="ai-widget-btn">${config.sendText}</button>
           </div>
           <div class="ai-widget-typing" id="ai-typing" style="display:none;">
             <div class="ai-widget-typing-dots">
@@ -92,6 +92,16 @@
     `;
     console.log('Appending widget to body...');
     document.body.appendChild(mount);
+
+    // Set custom styles
+    document.documentElement.style.setProperty('--ai-color', config.color);
+    const toggleBtn = mount.querySelector('#ai-toggle');
+    if (toggleBtn) {
+      toggleBtn.style.backgroundColor = config.color;
+      toggleBtn.style.color = 'white';
+      toggleBtn.style.border = 'none';
+      toggleBtn.style.borderRadius = '50%';
+    }
     console.log('Widget appended');
   }
 
@@ -229,10 +239,21 @@
   window.AIWidget = window.AIWidget || {};
   window.AIWidget.init = (options) => {
     Object.assign(config, options);
-    // Re-render if needed
-    if (options.title) {
-      const titleEl = document.querySelector('.ai-widget-title');
+    // Update UI for changed properties
+    if (options.title !== undefined) {
+      const titleEl = mount?.querySelector('.ai-widget-title');
       if (titleEl) titleEl.textContent = config.title;
+    }
+    if (options.color !== undefined) {
+      document.documentElement.style.setProperty('--ai-color', config.color);
+    }
+    if (options.sendText !== undefined) {
+      const sendBtn = mount?.querySelector('#ai-send');
+      if (sendBtn) sendBtn.textContent = config.sendText;
+    }
+    if (options.placeholder !== undefined) {
+      const inputEl = mount?.querySelector('#ai-input');
+      if (inputEl) inputEl.placeholder = config.placeholder;
     }
   };
 
