@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RAG System - Content Ingestion & Widget Generator</title>
     <link rel="stylesheet" href="/frontend/static/styles.css">
+
+    <!-- Widget Configuration and Embedding -->
+    <script>
+    window.AIWidgetConfig = {
+      apiBase: 'http://localhost:8000',
+      collection: 'tbank_multi',
+      apiKey: 'aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5',
+      title: 'AI Assistant',
+      language: 'en',
+      welcomeMessage: 'Hello! How can I help you?'
+    };
+    </script>
+    <script src="/widget/widget.js"></script>
     <link rel="stylesheet" href="/widget/widget.css">
 </head>
 <body>
@@ -119,9 +132,7 @@ window.AIWidgetConfig = {
             </section>
         </main>
 
-        <!-- Widget Embedding -->
-        <script src="/widget/widget.js"></script>
-        <link rel="stylesheet" href="/widget/widget.css">
+
 
         <footer>
             <p>Built with FastAPI, Qdrant, and OpenAI</p>

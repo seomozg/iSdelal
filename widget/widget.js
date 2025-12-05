@@ -5,8 +5,11 @@
   const config = {
     // Our FastAPI backend is mounted at the origin, so default apiBase is just location.origin
     apiBase: window.AIWidgetConfig?.apiBase || location.origin,
+    collection: window.AIWidgetConfig?.collection || 'default_collection',
+    apiKey: window.AIWidgetConfig?.apiKey || 'your-api-key',
     theme: window.AIWidgetConfig?.theme || 'default',
     language: window.AIWidgetConfig?.language || 'en',
+    position: window.AIWidgetConfig?.position || 'bottom-right',
     welcomeMessage: window.AIWidgetConfig?.welcomeMessage || null,
     maxMessages: window.AIWidgetConfig?.maxMessages || 50
   };
@@ -33,6 +36,14 @@
 
   const t = translations[config.language] || translations.en;
 
+  // Set config title and placeholder from translations or config
+  config.title = window.AIWidgetConfig?.title || t.title;
+  config.placeholder = window.AIWidgetConfig?.placeholder || t.placeholder;
+  config.send = t.send;
+
+  // Widget mount variable
+  var mount;
+
   // Load CSS
   function loadCSS() {
     const styleHref = config.apiBase.replace('/api', '') + '/widget/widget.css';
@@ -51,7 +62,7 @@
       'top-left': 'top:24px;left:24px;'
     };
 
-    const mount = document.createElement('div');
+    mount = document.createElement('div');
     mount.id = 'ai-widget';
     mount.innerHTML = `
       <div class="ai-widget-container" style="position:fixed;${positions[config.position]}z-index:99999">
@@ -79,8 +90,11 @@
         </div>
       </div>
     `;
+    console.log('Appending widget to body...');
     document.body.appendChild(mount);
+    console.log('Widget appended');
   }
+
 
   // Widget functionality
   let isOpen = false;
@@ -217,7 +231,8 @@
     Object.assign(config, options);
     // Re-render if needed
     if (options.title) {
-      document.querySelector('.ai-widget-title').textContent = config.title;
+      const titleEl = document.querySelector('.ai-widget-title');
+      if (titleEl) titleEl.textContent = config.title;
     }
   };
 
@@ -233,7 +248,13 @@
 
   // Initialize widget
   loadCSS();
-  createWidget();
+
+  // Wait for DOM ready before creating widget
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', createWidget);
+  } else {
+    createWidget();
+  }
 
   // Initialize DOM element references after a small delay
   setTimeout(() => {
