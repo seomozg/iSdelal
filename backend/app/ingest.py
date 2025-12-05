@@ -75,12 +75,22 @@ def _create_job(job_id: str, mode: str, target: str) -> None:
 
 
 def embed_texts(texts):
-    """Embed texts using OpenAI API."""
-    resp = client_openai.embeddings.create(
-        model=EMBED_MODEL,
-        input=texts
-    )
-    return [item.embedding for item in resp.data]
+    """Embed texts using OpenAI API, batched to avoid token limits."""
+    embeddings = []
+    batch_size = 100  # limit batch size to stay under token limits
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i + batch_size]
+        try:
+            resp = client_openai.embeddings.create(
+                model=EMBED_MODEL,
+                input=batch
+            )
+            embeddings.extend([item.embedding for item in resp.data])
+        except Exception as e:
+            print(f"Embedding batch failed: {e}")
+            # Return empty embeddings for failed batch or raise
+            embeddings.extend([[] for _ in batch])
+    return embeddings
 
 
 async def fetch_with_playwright(url: str, timeout: int = CRAWL_TIMEOUT) -> str:

@@ -138,5 +138,6 @@ async def get_collection_info(collection_name: str):
         raise HTTPException(status_code=404, detail=f"Collection {collection_name} not found")
 
 @app.get('/health')
+@app.head('/health')
 async def health():
     return {'status': 'ok'}
