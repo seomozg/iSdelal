@@ -77,7 +77,8 @@ def _create_job(job_id: str, mode: str, target: str) -> None:
 def embed_texts(texts):
     """Embed texts using OpenAI API, batched to avoid token limits."""
     embeddings = []
-    batch_size = 100  # limit batch size to stay under token limits
+    # Smaller batch size since chunks are larger now (helps with performance and API limits)
+    batch_size = 50  # reduced from 100 for smaller chunk processing
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i + batch_size]
         try:
@@ -353,31 +354,50 @@ async def ingest_url(url: str, collection_name: str = "site_collection", job_id:
     # 2. Collect all chunks and their metadata across all pages
     all_chunks = []
     all_urls = []
-    
+
+    # Limit total chunks to avoid excessive API costs and processing time
+    MAX_TOTAL_CHUNKS = 100
+    chunks_per_page = MAX_TOTAL_CHUNKS // len(pages) if pages else MAX_TOTAL_CHUNKS
+
     for page_url, html_content in pages:
+        if len(all_chunks) >= MAX_TOTAL_CHUNKS:
+            break  # Stop if we've reached the limit
+
         try:
             text = html_to_text(html_content)
+
+            # Skip pages that are too short or too long
+            word_count = len(text.split())
+            if word_count < 10:  # Skip nearly empty pages
+                continue
+            if word_count > 5000:  # Limit very large pages
+                # Take first part of long pages only
+                text = ' '.join(text.split()[:5000])
+
             chunks = chunk_text(text)
+            # Limit chunks per page to distribute evenly
+            chunks = chunks[:chunks_per_page] if chunks else []
+
             all_chunks.extend(chunks)
             all_urls.extend([page_url] * len(chunks))
 
             if job_id in _ingest_jobs:
                 _ingest_jobs[job_id]["progress"].update({
                     "chunks_extracted": len(all_chunks),
-                    "message": f"Extracting chunks... ({len(all_chunks)} so far)"
+                    "message": f"Extracting chunks... ({len(all_chunks)}/{MAX_TOTAL_CHUNKS})"
                 })
         except Exception as e:
             print(f"Warning: Failed to process {page_url}: {e}")
             continue
-    
+
     if not all_chunks:
         if job_id in _ingest_jobs:
             _ingest_jobs[job_id]["progress"].update({
                 "message": "No chunks extracted from pages"
             })
         return {"status": "error", "detail": "No chunks extracted from pages"}
-    
-    print(f"Total chunks extracted: {len(all_chunks)}")
+
+    print(f"Total chunks extracted: {len(all_chunks)} (limited to {MAX_TOTAL_CHUNKS} max)")
 
     # 3. Create embeddings for all chunks (run sync embedding in thread)
     print("Creating embeddings...")

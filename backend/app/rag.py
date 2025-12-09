@@ -2,7 +2,7 @@
 from openai import OpenAI
 import os
 
-TOP_K = int(os.getenv("RAG_TOP_K", 5))
+TOP_K = int(os.getenv("RAG_TOP_K", 3))
 client_openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # DeepSeek API client for LLM
