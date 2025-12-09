@@ -10,15 +10,13 @@ import asyncio
 import time
 from typing import Dict, Any
 
-EMBED_MODEL = os.getenv("EMBED_MODEL", "text-embedding-3-large")
+EMBED_MODEL = os.getenv("EMBED_MODEL", "jina-embeddings-v2-base-en")
 CRAWL_MAX_PAGES = int(os.getenv("CRAWL_MAX_PAGES", 50))
 PLAYWRIGHT_MAX_PAGES = int(os.getenv("PLAYWRIGHT_MAX_PAGES", 30))
 CRAWL_TIMEOUT = int(os.getenv("CRAWL_TIMEOUT", 30))
 NAVIGATION_TIMEOUT = int(os.getenv("NAVIGATION_TIMEOUT", 60))
 USE_PLAYWRIGHT = os.getenv("USE_PLAYWRIGHT", "true").lower() == "true"
 INGEST_TIMEOUT_SECONDS = int(os.getenv("INGEST_TIMEOUT_SECONDS", 600))  # global timeout per ingest job
-
-client_openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # In-memory job tracker for background ingest tasks
 _ingest_jobs: Dict[str, Dict[str, Any]] = {}
@@ -75,12 +73,28 @@ def _create_job(job_id: str, mode: str, target: str) -> None:
 
 
 def embed_texts(texts):
-    """Embed texts using OpenAI API."""
-    resp = client_openai.embeddings.create(
-        model=EMBED_MODEL,
-        input=texts
+    """Embed texts using Jina AI API."""
+    api_key = os.getenv("JINA_API_KEY")
+    if not api_key:
+        raise ValueError("JINA_API_KEY environment variable is required")
+
+    resp = requests.post(
+        "https://api.jina.ai/v1/embeddings",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        },
+        json={
+            "model": EMBED_MODEL,
+            "input": texts
+        }
     )
-    return [item.embedding for item in resp.data]
+
+    if resp.status_code != 200:
+        raise Exception(f"Jina API error: {resp.status_code} - {resp.text}")
+
+    data = resp.json()
+    return [item["embedding"] for item in data["data"]]
 
 
 async def fetch_with_playwright(url: str, timeout: int = CRAWL_TIMEOUT) -> str:

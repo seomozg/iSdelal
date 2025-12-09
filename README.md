@@ -5,7 +5,7 @@ A complete Retrieval-Augmented Generation (RAG) system with Qdrant vector databa
 ## ✨ Features
 
 - **🔍 Semantic Search**: Qdrant-powered vector similarity search
-- **🤖 AI Chat**: OpenAI GPT integration with context-aware responses
+- **🤖 AI Chat**: DeepSeek AI integration with context-aware responses
 - **🕷️ Web Crawling**: Automated website content indexing
 - **💬 Chat Widget**: Ready-to-use JavaScript widget for websites
 - **🐳 Docker Ready**: Complete containerized setup
@@ -16,7 +16,8 @@ A complete Retrieval-Augmented Generation (RAG) system with Qdrant vector databa
 
 ### Prerequisites
 - Docker & Docker Compose
-- OpenAI API key
+- DeepSeek API key (for AI chat)
+- Jina AI API key (for embeddings)
 
 ### 1. Clone & Setup
 ```bash
@@ -27,7 +28,8 @@ cd iSdelal
 cp backend/.env.example backend/.env
 
 # Edit .env with your keys
-# OPENAI_API_KEY=sk-your-key-here
+# DEEPSEEK_API_KEY=sk-your-deepseek-key-here
+# JINA_API_KEY=your-jina-key-here
 # API_KEY=your-random-secret-key
 ```
 
@@ -81,11 +83,11 @@ curl http://localhost:8000/health
         ┌────────────┴────────────┐
         │                         │
 ┌───────▼──────┐        ┌────────▼──────┐
-│ Qdrant       │        │ OpenAI API    │
-│ Vector DB    │        │ GPT-4.1       │
-│ Port 6333    │        │ Embeddings    │
-│              │        │               │
-│ Collections  │        │ text-emb-3-lge│
+│ Qdrant       │        │ DeepSeek/Jina │
+│ Vector DB    │        │ API Services  │
+│ Port 6333    │        │ deepseek-chat │
+│              │        │ jina-emb-v2   │
+│ Collections  │        │               │
 │ Vectors      │        │               │
 └──────────────┘        └───────────────┘
 ```
@@ -231,13 +233,14 @@ Copy `.env.example` to `.env` and configure:
 
 ```bash
 # Required
-OPENAI_API_KEY=sk-your-openai-key-here
+DEEPSEEK_API_KEY=sk-your-deepseek-key-here
+JINA_API_KEY=your-jina-key-here
 API_KEY=your-random-secret-key
 
 # Optional (defaults shown)
 QDRANT_HOST=qdrant
 QDRANT_PORT=6333
-EMBED_MODEL=text-embedding-3-large
+EMBED_MODEL=jina-embeddings-v2-base-en
 RAG_TOP_K=5
 CRAWL_MAX_PAGES=50
 CRAWL_TIMEOUT=30
@@ -285,7 +288,7 @@ window.AIWidgetConfig = {
 | API not responding | Check `docker compose logs backend` |
 | Hot reload not working | Restart with `docker compose restart backend` |
 | Qdrant data lost | Use `docker compose down` (not `down -v`) to preserve data |
-| OpenAI API errors | Verify `OPENAI_API_KEY` in `.env` |
+| DeepSeek/Jina API errors | Verify `DEEPSEEK_API_KEY` and `JINA_API_KEY` in `.env` |
 
 **Full Diagnostics:**
 ```bash
@@ -312,5 +315,3 @@ MIT License - see repository for details.
 - 📖 **Documentation**: Check the `/docs` folder
 - 🐛 **Issues**: Open a GitHub issue
 - 💬 **Discussions**: Use GitHub Discussions for questions
-
-
