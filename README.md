@@ -10,7 +10,7 @@ A complete Retrieval-Augmented Generation (RAG) system with Qdrant vector databa
 - **💬 Chat Widget**: Ready-to-use JavaScript widget for websites
 - **🐳 Docker Ready**: Complete containerized setup
 - **📊 Admin Interface**: Web-based content management
-- **🔐 Secure**: API key authentication and CORS protection
+- **🔐 Secure**: CORS protection configured
 
 ## 🚀 Quick Start
 
@@ -28,7 +28,6 @@ cp backend/.env.example backend/.env
 
 # Edit .env with your keys
 # OPENAI_API_KEY=sk-your-key-here
-# API_KEY=your-random-secret-key
 ```
 
 ### 2. Launch Services (single compose)
@@ -134,7 +133,7 @@ iSdelal/
 
 ## 🔌 API Endpoints
 
-All endpoints require `X-API-Key` header authentication.
+All endpoints are open access without authentication.
 
 ### Health Check
 ```bash
@@ -157,7 +156,6 @@ GET /collections/{name}
 ```bash
 POST /ingest
 Content-Type: application/json
-X-API-Key: your-api-key
 
 {
   "url": "https://example.com",
@@ -169,7 +167,6 @@ X-API-Key: your-api-key
 ```bash
 POST /chat
 Content-Type: application/json
-X-API-Key: your-api-key
 
 {
   "question": "What is this website about?",
@@ -219,7 +216,6 @@ pytest tests/test_api.py -v
 ```
 
 **Test Coverage:**
-- ✅ API authentication (X-API-Key)
 - ✅ Health check endpoints
 - ✅ Content ingestion & Qdrant indexing
 - ✅ AI chat with RAG
@@ -232,7 +228,6 @@ Copy `.env.example` to `.env` and configure:
 ```bash
 # Required
 OPENAI_API_KEY=sk-your-openai-key-here
-API_KEY=your-random-secret-key
 
 # Optional (defaults shown)
 QDRANT_HOST=qdrant
@@ -256,7 +251,6 @@ USE_PLAYWRIGHT=true
 window.AIWidgetConfig = {
   apiBase: 'http://localhost:8000',        // Backend URL
   collection: 'moose_farm_ru',             // Имя коллекции из Qdrant
-  apiKey: 'your-api-key',                  // Из backend/.env -> API_KEY
   title: 'AI Assistant',                   // Заголовок виджета
   welcomeMessage: 'Hello! How can I help?' // Приветственное сообщение
 };
@@ -272,7 +266,7 @@ window.AIWidgetConfig = {
 
 ## 🔐 Security
 
-- ✅ API key authentication required for all endpoints
+- ✅ Open access API (no authentication required)
 - ✅ Environment variables never committed (.env in .gitignore)
 - ✅ CORS protection configured
 - ✅ No sensitive data in repository
@@ -312,5 +306,3 @@ MIT License - see repository for details.
 - 📖 **Documentation**: Check the `/docs` folder
 - 🐛 **Issues**: Open a GitHub issue
 - 💬 **Discussions**: Use GitHub Discussions for questions
-
-

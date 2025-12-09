@@ -46,11 +46,7 @@ class RAGFrontend {
             this.currentJobId = storedJobId;
 
             // single status check to see if job is still active
-            fetch(`${this.apiBase}/ingest/status/${this.currentJobId}`, {
-                headers: {
-                    'X-API-Key': 'aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5'
-                }
-            })
+            fetch(`${this.apiBase}/ingest/status/${this.currentJobId}`)
                 .then(res => res.json())
                 .then(data => {
                     this.updateStatusDisplay(data);
@@ -127,8 +123,7 @@ class RAGFrontend {
             const response = await fetch(`${this.apiBase}/ingest`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-Key': 'aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(requestData)
             });
@@ -161,11 +156,7 @@ class RAGFrontend {
 
         this.statusCheckInterval = setInterval(async () => {
             try {
-                const response = await fetch(`${this.apiBase}/ingest/status/${this.currentJobId}`, {
-                    headers: {
-                        'X-API-Key': 'aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5'
-                    }
-                });
+                const response = await fetch(`${this.apiBase}/ingest/status/${this.currentJobId}`);
 
                 const data = await response.json();
 
@@ -350,7 +341,6 @@ class RAGFrontend {
 window.AIWidgetConfig = {
   apiBase: '${this.apiBase}',
   collection: '${collection}',
-  apiKey: 'aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5',
   title: '${title}',
   language: 'en',
   welcomeMessage: '${message}'
@@ -365,7 +355,6 @@ window.AIWidgetConfig = {
             window.AIWidget.init({
                 apiBase: this.apiBase,
                 collection,
-                apiKey: 'aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5aB3fK9mN2pQ7rT8vX1zC4eG6hJ0nL5',
                 title,
                 language: 'en',
                 welcomeMessage: message
