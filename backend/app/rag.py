@@ -5,6 +5,12 @@ import os
 TOP_K = int(os.getenv("RAG_TOP_K", 5))
 client_openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# DeepSeek API client for LLM
+client_llm = OpenAI(
+    api_key=os.getenv("DEEPSEEK_API_KEY"),
+    base_url="https://api.deepseek.com/v1"
+)
+
 
 def query_and_build_context(query_embedding, collection_name="site_collection"):
     client_qdrant = get_qdrant_client()
@@ -47,8 +53,8 @@ def call_llm_with_context(user_question: str, context_snippets: list):
 
     prompt = "\n".join(prompt_parts)
 
-    response = client_openai.chat.completions.create(
-        model="gpt-4.1",
+    response = client_llm.chat.completions.create(
+        model="deepseek-chat",
         messages=[
             {"role": "system", "content": "You are a helpful website assistant."},
             {"role": "user", "content": prompt}
