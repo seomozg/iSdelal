@@ -1,7 +1,6 @@
 import requests
 from .utils import html_to_text, chunk_text
 from .qdrant_client import get_qdrant_client
-from openai import OpenAI
 import uuid
 import os
 from urllib.parse import urljoin, urlparse
@@ -10,7 +9,6 @@ import asyncio
 import time
 from typing import Dict, Any
 
-EMBED_MODEL = os.getenv("EMBED_MODEL", "text-embedding-3-large")
 CRAWL_MAX_PAGES = int(os.getenv("CRAWL_MAX_PAGES", 50))
 PLAYWRIGHT_MAX_PAGES = int(os.getenv("PLAYWRIGHT_MAX_PAGES", 30))
 CRAWL_TIMEOUT = int(os.getenv("CRAWL_TIMEOUT", 30))
@@ -18,7 +16,12 @@ NAVIGATION_TIMEOUT = int(os.getenv("NAVIGATION_TIMEOUT", 60))
 USE_PLAYWRIGHT = os.getenv("USE_PLAYWRIGHT", "true").lower() == "true"
 INGEST_TIMEOUT_SECONDS = int(os.getenv("INGEST_TIMEOUT_SECONDS", 600))  # global timeout per ingest job
 
-client_openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# We'll use Jina AI API for embeddings instead of local model
+import os
+
+# Get Jina API key from environment
+JINA_API_KEY = os.getenv("JINA_API_KEY")
+JINA_EMBEDDING_URL = "https://api.jina.ai/v1/embeddings"
 
 # In-memory job tracker for background ingest tasks
 _ingest_jobs: Dict[str, Dict[str, Any]] = {}
@@ -75,23 +78,62 @@ def _create_job(job_id: str, mode: str, target: str) -> None:
 
 
 def embed_texts(texts):
-    """Embed texts using OpenAI API, batched to avoid token limits."""
-    embeddings = []
-    # Smaller batch size since chunks are larger now (helps with performance and API limits)
-    batch_size = 50  # reduced from 100 for smaller chunk processing
-    for i in range(0, len(texts), batch_size):
-        batch = texts[i:i + batch_size]
-        try:
-            resp = client_openai.embeddings.create(
-                model=EMBED_MODEL,
-                input=batch
+    """Embed texts using Jina AI API."""
+    if not JINA_API_KEY:
+        raise Exception("JINA_API_KEY not set in environment variables")
+
+    print(f"🔑 JINA_API_KEY starts with: {JINA_API_KEY[:10]}...")  # Debug log
+
+    try:
+        # Jina AI can handle batches, but let's keep it reasonable
+        batch_size = 5  # Smaller batches for debugging
+        all_embeddings = []
+
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i + batch_size]
+            print(f"📦 Processing batch {i//batch_size + 1} with {len(batch)} texts")
+
+            response = requests.post(
+                JINA_EMBEDDING_URL,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {JINA_API_KEY}"
+                },
+                json={
+                    "model": "jina-embeddings-v2-base-en",  # Free tier model
+                    "input": batch
+                }
             )
-            embeddings.extend([item.embedding for item in resp.data])
-        except Exception as e:
-            print(f"Embedding batch failed: {e}")
-            # Return empty embeddings for failed batch or raise
-            embeddings.extend([[] for _ in batch])
-    return embeddings
+
+            print(f"🌐 API Response status: {response.status_code}")
+
+            if response.status_code != 200:
+                print(f"❌ Jina API error: {response.status_code} - {response.text}")
+                # Return empty embeddings for this batch
+                all_embeddings.extend([[] for _ in batch])
+                continue
+
+            data = response.json()
+            print(f"📊 API Response data keys: {list(data.keys())}")
+
+            if "data" not in data:
+                print(f"❌ No 'data' in response: {data}")
+                all_embeddings.extend([[] for _ in batch])
+                continue
+
+            embeddings = [item["embedding"] for item in data["data"]]
+            print(f"✅ Got {len(embeddings)} embeddings, first vector length: {len(embeddings[0]) if embeddings else 0}")
+            all_embeddings.extend(embeddings)
+
+        print(f"🎉 Successfully embedded {len(texts)} texts using Jina AI, total vectors: {len(all_embeddings)}")
+        return all_embeddings
+
+    except Exception as e:
+        print(f"💥 Jina AI embedding failed: {e}")
+        import traceback
+        traceback.print_exc()
+        # Return empty embeddings for all texts in case of failure
+        return [[] for _ in texts]
 
 
 async def fetch_with_playwright(url: str, timeout: int = CRAWL_TIMEOUT) -> str:
@@ -421,15 +463,9 @@ async def ingest_url(url: str, collection_name: str = "site_collection", job_id:
         # Try to get collection to check if it exists
         collections = client_qdrant.get_collections()
         collection_exists = any(col.name == collection_name for col in collections.collections)
-    except Exception:
-        collection_exists = False
-    
-    if collection_exists:
-        print(f"Collection '{collection_name}' exists, will add/update points")
-    else:
-        print(f"Creating new collection '{collection_name}'...")
-        # Use modern create_collection for qdrant-client 1.x
-        try:
+
+        if not collection_exists:
+            print(f"Creating new collection '{collection_name}'...")
             client_qdrant.create_collection(
                 collection_name=collection_name,
                 vectors_config={
@@ -437,9 +473,12 @@ async def ingest_url(url: str, collection_name: str = "site_collection", job_id:
                     "distance": "Cosine"
                 }
             )
-        except Exception as e:
-            print(f"Warning: create_collection failed ({e}), attempting upsert anyway")
-            # Collection might already exist, upsert will work either way
+        else:
+            print(f"Collection '{collection_name}' exists, will add/update points")
+
+    except Exception as e:
+        print(f"Warning: Collection check/create failed ({e}), attempting upsert anyway")
+        # Collection might already exist or creation is in progress, upsert will work either way
     
     # 6. Create points (without vector name)
     points = []

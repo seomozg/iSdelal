@@ -107,6 +107,7 @@ class RAGFrontend {
         // Generate collection name from URL
         const collectionInput = this.generateCollectionName(urlInput);
         document.getElementById('collection-input').value = collectionInput;
+        console.log(`🎯 Generated collection name: "${collectionInput}" for URL: "${urlInput}"`);
 
         if (!collectionInput) {
             this.showError('Please enter a collection name');
