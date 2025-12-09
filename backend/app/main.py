@@ -41,14 +41,10 @@ class ChatRequest(BaseModel):
     question: str
     collection: str = 'site_collection'
 
-def verify_api_key(x_api_key: str):
-    expected = os.getenv('API_KEY')
-    if not expected or x_api_key != expected:
-        raise HTTPException(status_code=401, detail="Invalid API key")
+
 
 @app.post('/ingest')
-async def ingest(req: IngestRequest, x_api_key: str = Header(None), background_tasks: BackgroundTasks = None):
-    verify_api_key(x_api_key)
+async def ingest(req: IngestRequest, background_tasks: BackgroundTasks = None):
     try:
         # Create a job ID for this ingest task
         job_id = str(uuid.uuid4())
@@ -88,16 +84,14 @@ async def ingest(req: IngestRequest, x_api_key: str = Header(None), background_t
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get('/ingest/status/{job_id}')
-async def ingest_status(job_id: str, x_api_key: str = Header(None)):
-    verify_api_key(x_api_key)
+async def ingest_status(job_id: str):
     status = _get_job_status(job_id)
     if status.get("status") == "not_found":
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
     return status
 
 @app.post('/chat')
-async def chat(req: ChatRequest, x_api_key: str = Header(None)):
-    verify_api_key(x_api_key)
+async def chat(req: ChatRequest):
     # 1) embed question
     embs = embed_texts([req.question])
     q_emb = embs[0]
