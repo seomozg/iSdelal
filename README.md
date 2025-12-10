@@ -244,29 +244,8 @@ USE_PLAYWRIGHT=true
 ```
 
 
-<<<<<<< HEAD
-## 💬 Widget Integration
+>>>>>>> widget-code-fixes
 
-После того как ты проингестил сайт и появилась коллекция (например, `moose_farm_ru`), виджет подключается так:
-
-```html
-<!-- Configure the widget -->
-<script>
-window.AIWidgetConfig = {
-  apiBase: 'http://localhost:8000',        // Backend URL
-  collection: 'moose_farm_ru',             // Имя коллекции из Qdrant
-  title: 'AI Assistant',                   // Заголовок виджета
-  welcomeMessage: 'Hello! How can I help?' // Приветственное сообщение
-};
-</script>
-
-<!-- Load the widget -->
-<script src="http://localhost:8000/widget/widget.js"></script>
-```
-
-Код выше автоматически генерируется на странице `http://localhost:8000/frontend/` в блоке **AI Chat Widget**. Ты выбираешь коллекцию, настраиваешь заголовок и приветствие — и просто копируешь готовый `<script>`‑блок.
-
----
 =======
 >>>>>>> widget-code-fixes
 
@@ -519,6 +498,27 @@ window.AIWidgetConfig = {
 ```bash
 docker compose ps              # Container status
 docker compose logs backend    # Backend logs
+docker compose logs qdrant     # Qdrant logs
+curl http://localhost:8000/health  # API health check
+```
+
+## 📄 License
+
+MIT License - see repository for details.
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Add tests for new functionality
+4. Ensure all tests pass
+5. Submit a pull request
+
+## 📞 Support
+
+- 📖 **Documentation**: Check the `/docs` folder
+- 🐛 **Issues**: Open a GitHub issue
+- 💬 **Discussions**: Use GitHub Discussions for questions
 docker compose logs qdrant     # Qdrant logs
 curl http://localhost:8000/health  # API health check
 ```
