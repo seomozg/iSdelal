@@ -1,6 +1,6 @@
 # iSdelal - AI-Powered RAG System
 
-A complete Retrieval-Augmented Generation (RAG) system with Qdrant vector database, FastAPI backend, and an embeddable chat widget. Perfect for adding AI-powered Q&A to any website.
+A Retrieval-Augmented Generation (RAG) system with Qdrant vector database, FastAPI backend, and admin web interface. Perfect for managing AI-powered Q&A content and embedding chat widgets on websites.
 
 ## ✨ Features
 
@@ -41,37 +41,16 @@ docker compose ps
 curl http://localhost:8000/health
 ```
 
-### 3. Launch Landing Page
-```bash
-# In separate terminal window/tab
-cd click-ai-widget
+### 3. Access the Admin Interface
 
-# Install dependencies (first time only)
-npm install
-
-# Start React dev server
-npm run dev
-
-# Landing page will be available at:
-# http://localhost:8080/landing/
-```
-
-### 3. Use the UI
-
-#### 🌐 Landing Page & Admin Dashboard
-После запуска перейдите в браузере:
-
-- **🚀 Landing Page**: `http://localhost:8080/landing/`
-  - Красивая React страница для клиентов
-  - Создание AI агентов для сайтов
-  - Генерация embed-кода виджетов
-  - Ввод URL сайта → создание коллекции → embed код
+#### 🔧 Admin Dashboard
+After launching the services, access the following in your browser:
 
 - **🔧 Admin Dashboard**: `http://localhost:8000/frontend/`
-  - Управление ingestion процессами
-  - Мониторинг запущенных задач
-  - Просмотр коллекций Qdrant
-  - Ручное управление системой
+  - Manage content ingestion processes
+  - Monitor running tasks and view logs
+  - Browse Qdrant collections and statistics
+  - Generate embeddable chat widget code
 
 - **📖 API Documentation**: `http://localhost:8000/docs`
 - **💚 Health Check**: `http://localhost:8000/health`
@@ -387,8 +366,7 @@ docker compose logs --tail=100 -f backend
 
 ### 10. Access Your Production System
 
-- **🔗 Landing Page**: `https://yourdomain.com/landing/`
-- **🔧 Admin Dashboard**: `https://yourdomain.com/frontend/`
+- **🔧 Admin Interface**: `https://yourdomain.com/frontend/`
 - **📊 API Documentation**: `https://yourdomain.com/docs`
 - **💬 Widget Endpoint**: `https://yourdomain.com/widget/widget.js`
 
