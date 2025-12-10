@@ -33,9 +33,13 @@ class RAGFrontend {
     init() {
         this.bindEvents();
         this.loadCollections();
+        this.loadActiveProcesses(); // Load active ingestion processes
         this.updateWidgetCode();
         this.restoreJobFromStorage();
         this.addLogEntry('System initialized. Ready for content ingestion.');
+
+        // Auto-refresh active processes every 30 seconds
+        setInterval(() => this.loadActiveProcesses(), 30000);
     }
 
     restoreJobFromStorage() {
@@ -94,6 +98,12 @@ class RAGFrontend {
                 this.startIngestion();
             }
         });
+
+        // Active processes refresh button
+        const refreshBtn = document.getElementById('refresh-processes-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => this.loadActiveProcesses());
+        }
     }
 
     async startIngestion() {
@@ -284,6 +294,43 @@ class RAGFrontend {
         }
     }
 
+    async loadActiveProcesses() {
+        try {
+            const activeProcessesContainer = document.getElementById('active-processes-container');
+            const activeProcessesList = document.getElementById('active-processes-list');
+
+            // Show loading state
+            activeProcessesList.innerHTML = '<div class="process-loading">Loading active processes...</div>';
+
+            const response = await fetch(`${this.apiBase}/ingest/active`);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            // Clear existing
+            activeProcessesList.innerHTML = '';
+
+            if (data.active_processes && data.active_processes.length > 0) {
+                // Show container
+                activeProcessesContainer.style.display = 'block';
+
+                data.active_processes.forEach(process => {
+                    this.addActiveProcessCard(process);
+                });
+            } else {
+                activeProcessesList.innerHTML = '<div class="process-loading">No active ingestion processes</div>';
+                activeProcessesContainer.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error loading active processes:', error);
+            document.getElementById('active-processes-list').innerHTML =
+                '<div class="process-loading">Error loading active processes</div>';
+        }
+    }
+
     addCollectionCard(collectionName) {
         const collectionsList = document.getElementById('collections-list');
 
@@ -303,6 +350,30 @@ class RAGFrontend {
 
         // Load collection stats
         this.loadCollectionStats(collectionName, card);
+    }
+
+    addActiveProcessCard(process) {
+        const activeProcessesList = document.getElementById('active-processes-list');
+
+        const card = document.createElement('div');
+        card.className = 'process-card';
+        card.innerHTML = `
+            <div class="process-header">
+                <div class="process-collection">${process.collection}</div>
+                <div class="process-status status-${process.status}">${this.capitalizeFirst(process.status)}</div>
+            </div>
+            <div class="process-details">
+                <div class="process-url">🌐 ${process.url}</div>
+                <div class="process-job-id">🆔 ${process.job_id || 'N/A'}</div>
+                <div class="process-progress">
+                    ${process.progress?.message || 'Processing...'}
+                    ${process.progress?.pages_fetched ? ` (${process.progress.pages_fetched} pages)` : ''}
+                </div>
+                ${process.created_at ? `<div class="process-time">🕒 Started: ${new Date(process.created_at * 1000).toLocaleTimeString()}</div>` : ''}
+            </div>
+        `;
+
+        activeProcessesList.appendChild(card);
     }
 
     async loadCollectionStats(collectionName, cardElement) {
