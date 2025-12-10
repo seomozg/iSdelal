@@ -5,7 +5,7 @@ A complete Retrieval-Augmented Generation (RAG) system with Qdrant vector databa
 ## ✨ Features
 
 - **🔍 Semantic Search**: Qdrant-powered vector similarity search
-- **🤖 AI Chat**: OpenAI GPT integration with context-aware responses
+- **🤖 AI Chat**: AI integration with context-aware responses
 - **🕷️ Web Crawling**: Automated website content indexing
 - **💬 Chat Widget**: Ready-to-use JavaScript widget for websites
 - **🐳 Docker Ready**: Complete containerized setup
@@ -16,7 +16,7 @@ A complete Retrieval-Augmented Generation (RAG) system with Qdrant vector databa
 
 ### Prerequisites
 - Docker & Docker Compose
-- OpenAI API key
+- Jina AI API key
 
 ### 1. Clone & Setup
 ```bash
@@ -27,10 +27,10 @@ cd iSdelal
 cp backend/.env.example backend/.env
 
 # Edit .env with your keys
-# OPENAI_API_KEY=sk-your-key-here
+# JINA_API_KEY=jina_your-key-here
 ```
 
-### 2. Launch Services (single compose)
+### 2. Launch Backend Services
 ```bash
 docker compose up -d --build
 
@@ -41,16 +41,40 @@ docker compose ps
 curl http://localhost:8000/health
 ```
 
+### 3. Launch Landing Page
+```bash
+# In separate terminal window/tab
+cd click-ai-widget
+
+# Install dependencies (first time only)
+npm install
+
+# Start React dev server
+npm run dev
+
+# Landing page will be available at:
+# http://localhost:8080/landing/
+```
+
 ### 3. Use the UI
 
-- **Frontend / Admin**: http://localhost:8000/frontend/
-  - Вводишь один URL сайта
-  - Нажимаешь "Start Ingestion"
-  - Следишь за статусом краулинга и логами
-  - Видишь реальные коллекции из Qdrant
-  - Генерируешь код чат‑виджета под выбранную коллекцию
-- **API Docs**: http://localhost:8000/docs
-- **Health**: http://localhost:8000/health
+#### 🌐 Landing Page & Admin Dashboard
+После запуска перейдите в браузере:
+
+- **🚀 Landing Page**: `http://localhost:8080/landing/`
+  - Красивая React страница для клиентов
+  - Создание AI агентов для сайтов
+  - Генерация embed-кода виджетов
+  - Ввод URL сайта → создание коллекции → embed код
+
+- **🔧 Admin Dashboard**: `http://localhost:8000/frontend/`
+  - Управление ingestion процессами
+  - Мониторинг запущенных задач
+  - Просмотр коллекций Qdrant
+  - Ручное управление системой
+
+- **📖 API Documentation**: `http://localhost:8000/docs`
+- **💚 Health Check**: `http://localhost:8000/health`
 
 ## 📖 Documentation
 
@@ -231,12 +255,12 @@ Copy `.env.example` to `.env` and configure:
 
 ```bash
 # Required
-OPENAI_API_KEY=sk-your-openai-key-here
+JINA_API_KEY=jina_your-key-here
 
 # Optional (defaults shown)
 QDRANT_HOST=qdrant
 QDRANT_PORT=6333
-EMBED_MODEL=text-embedding-3-large
+EMBED_MODEL=jina-embeddings-v2-base-en
 RAG_TOP_K=5
 CRAWL_MAX_PAGES=50
 CRAWL_TIMEOUT=30
