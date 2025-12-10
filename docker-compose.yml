@@ -17,6 +17,8 @@ services:
     build: ./backend
     container_name: rag-backend
     env_file: ./backend/.env
+    environment:
+      - ALLOW_ALL_ORIGINS=true
     ports:
       - '8000:8000'
     depends_on:

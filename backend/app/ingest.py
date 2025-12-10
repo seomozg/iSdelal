@@ -7,7 +7,7 @@ from urllib.parse import urljoin, urlparse
 from collections import deque
 import asyncio
 import time
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 CRAWL_MAX_PAGES = int(os.getenv("CRAWL_MAX_PAGES", 50))
 PLAYWRIGHT_MAX_PAGES = int(os.getenv("PLAYWRIGHT_MAX_PAGES", 30))

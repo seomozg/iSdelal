@@ -17,7 +17,7 @@ allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://loc
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=["*"] if os.getenv("ALLOW_ALL_ORIGINS", "false").lower() == "true" else allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],  # Added GET for frontend route
     allow_headers=["*"],
@@ -118,6 +118,32 @@ async def get_active_ingestions():
             active_processes.append(process_info)
 
     return {"active_processes": active_processes}
+
+@app.get('/ingest/jobs')
+async def get_all_ingestions(limit: int = 10):
+    """Get recent ingestion jobs across all collections."""
+    recent_jobs = []
+
+    # Sort jobs by creation time (most recent first)
+    sorted_jobs = sorted(
+        _ingest_jobs.items(),
+        key=lambda x: x[1].get("created_at", 0),
+        reverse=True
+    )[:limit]
+
+    for job_id, job_data in sorted_jobs:
+        recent_jobs.append({
+            "job_id": job_id,
+            "collection": job_data.get("collection"),
+            "url": job_data.get("target", ""),
+            "status": job_data.get("status", "unknown"),
+            "progress": job_data.get("progress", {}),
+            "created_at": job_data.get("created_at"),
+            "error": job_data.get("error"),
+            "result": job_data.get("result")
+        })
+
+    return {"jobs": recent_jobs}
 
 @app.post('/chat')
 async def chat(req: ChatRequest):

@@ -300,15 +300,30 @@ class RAGFrontend {
             const activeProcessesList = document.getElementById('active-processes-list');
 
             // Show loading state
-            activeProcessesList.innerHTML = '<div class="process-loading">Loading active processes...</div>';
+            activeProcessesList.innerHTML = '<div class="process-loading">Loading ingestion jobs...</div>';
 
-            const response = await fetch(`${this.apiBase}/ingest/active`);
+            // Try active processes first, then recent jobs
+            let response = await fetch(`${this.apiBase}/ingest/active`);
+            let data;
+
+            if (response.ok) {
+                data = await response.json();
+                if (!data.active_processes || data.active_processes.length === 0) {
+                    // No active processes, try recent jobs
+                    response = await fetch(`${this.apiBase}/ingest/jobs?limit=20`);
+                    data = await response.json();
+                    data.active_processes = data.jobs || [];
+                }
+            } else {
+                // Fallback to recent jobs if active endpoint fails
+                response = await fetch(`${this.apiBase}/ingest/jobs?limit=20`);
+                data = await response.json();
+                data.active_processes = data.jobs || [];
+            }
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-
-            const data = await response.json();
 
             // Clear existing
             activeProcessesList.innerHTML = '';
@@ -321,13 +336,16 @@ class RAGFrontend {
                     this.addActiveProcessCard(process);
                 });
             } else {
-                activeProcessesList.innerHTML = '<div class="process-loading">No active ingestion processes</div>';
-                activeProcessesContainer.style.display = 'none';
+                activeProcessesList.innerHTML = '<div class="process-loading">No ingestion jobs found</div>';
+                // Still show container but with empty message
+                activeProcessesContainer.style.display = 'block';
             }
         } catch (error) {
-            console.error('Error loading active processes:', error);
+            console.error('Error loading ingestion jobs:', error);
             document.getElementById('active-processes-list').innerHTML =
-                '<div class="process-loading">Error loading active processes</div>';
+                '<div class="process-loading">Error loading ingestion jobs</div>';
+            // Show container even on error
+            document.getElementById('active-processes-container').style.display = 'block';
         }
     }
 
@@ -423,11 +441,11 @@ window.AIWidgetConfig = {
   language: 'en',
   welcomeMessage: '${message}',
   color: '${color}',
-  sendText: '${sendText}',
-  placeholder: '${placeholder}'
+  sendButtonText: '${sendText}',
+  inputPlaceholder: '${placeholder}'
 };
 </script>
-<script src="${this.apiBase}/widget/widget.js"></script>`;
+<script src="http://localhost:8000/widget/widget.js"></script>`;
 
         document.getElementById('widget-code').textContent = code;
 
