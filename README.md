@@ -76,83 +76,6 @@ npm run dev
 - **📖 API Documentation**: `http://localhost:8000/docs`
 - **💚 Health Check**: `http://localhost:8000/health`
 
-## 📖 Documentation
-
-| File | Description |
-|------|-------------|
-| [`frontend/README.md`](./frontend/README.md) | Admin interface docs (UI details) |
-| [`backend/.env.example`](./backend/.env.example) | Environment configuration |
-
----
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Client (Browser)                                           │
-│ Embedded Widget: widget.js                                 │
-└────────────────────┬────────────────────────────────────────┘
-                     │ HTTP/HTTPS (POST /chat)
-                     │
-┌────────────────────▼────────────────────────────────────────┐
-│ FastAPI Backend - Port 8000                               │
-│ - AI chat endpoints                                        │
-│ - Content ingestion                                        │
-│ - Admin interface serving                                  │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-        ┌────────────┴────────────┐
-        │                         │
-┌───────▼──────┐        ┌────────▼──────┐
-│ Qdrant       │        │ OpenAI API    │
-│ Vector DB    │        │ GPT-4.1       │
-│ Port 6333    │        │ Embeddings    │
-│              │        │               │
-│ Collections  │        │ text-emb-3-lge│
-│ Vectors      │        │               │
-└──────────────┘        └───────────────┘
-```
-
-**Optional Nginx Layer:**
-- Reverse proxy for production
-- SSL termination
-- Load balancing
-- Static file serving
-
----
-
-## 📁 Project Structure
-
-```
-iSdelal/
-├── README.md                 # Main documentation
-├── .gitignore                # Git ignore rules
-├── docker-compose.yml        # Docker services config (backend + Qdrant)
-│
-├── backend/
-│   ├── .env.example          # Environment template
-│   ├── requirements.txt      # Python dependencies
-│   ├── Dockerfile            # Backend container
-│   ├── app/
-│   │   ├── main.py           # FastAPI application (API + /frontend/ + /widget)
-│   │   ├── ingest.py         # Web crawler & indexing
-│   │   ├── rag.py            # Vector search & LLM prompts
-│   │   ├── qdrant_client.py  # Qdrant database client
-│   │   └── utils.py          # Text processing utilities
-│   └── tests/
-│       └── test_api.py       # API tests
-│
-├── frontend/
-│   ├── index.html            # Admin / ingestion / widget UI
-│   ├── script.js             # Frontend logic, status polling, widget code
-│   ├── styles.css            # Interface styling
-│   └── README.md             # Frontend docs
-│
-└── widget/
-    ├── widget.js             # Embeddable chat widget
-    └── widget.css            # Widget styling
-```
-
 ---
 
 ## 🔌 API Endpoints
@@ -209,25 +132,6 @@ Content-Type: application/json
 }
 ```
 
-### Check Ingestion Status
-```bash
-GET /ingest/status/{job_id}
-# Returns: {
-#   "status": "running" | "completed" | "failed",
-#   "progress": {
-#     "message": "Crawling from https://...",
-#     "pages_fetched": 10,
-#     "chunks_extracted": 120,
-#     "embeddings_created": 120,
-#     "points_upserted": 120
-#   },
-#   "result": {
-#     "pages_crawled": 50,
-#     "chunks_indexed": 197,
-#     ...
-#   }
-# }
-```
 
 ## 🧪 Testing
 
@@ -287,7 +191,6 @@ USE_PLAYWRIGHT=true
 - Domain name (yourdomain.com)
 - SSL certificate (Let's Encrypt)
 - Docker & Docker Compose installed
-- OpenAI API key
 
 ### 1. Server Preparation
 ```bash
@@ -413,8 +316,6 @@ sudo systemctl enable certbot.timer
 nano backend/.env
 
 # Production settings:
-OPENAI_API_KEY=sk-your-production-key
-API_KEY=your-production-random-secret
 QDRANT_HOST=qdrant
 QDRANT_PORT=6333
 ALLOWED_ORIGINS=https://yourdomain.com
