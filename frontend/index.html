@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RAG System - Content Ingestion & Widget Generator</title>
     <link rel="stylesheet" href="/frontend/static/styles.css">
+
+    <!-- Widget Configuration and Embedding -->
+    <script>
+    window.AIWidgetConfig = {
+      apiBase: 'http://localhost:8000',
+      collection: 'tbank_multi',
+      title: 'AI Assistant',
+      language: 'ru',
+      welcomeMessage: 'Hello! How can I help you?'
+    };
+    </script>
+    <script src="/widget/widget.js"></script>
     <link rel="stylesheet" href="/widget/widget.css">
 </head>
 <body>
@@ -58,6 +70,16 @@
                     </div>
                 </div>
 
+                <div id="active-processes-container" style="display: none;">
+                    <h3>⚙️ Active Ingestion Processes</h3>
+                    <div id="active-processes-list" class="processes-grid">
+                        <div class="process-loading">Loading active processes...</div>
+                    </div>
+                    <button id="refresh-processes-btn" class="btn btn-secondary" style="margin-top: 10px;">
+                        🔄 Refresh Status
+                    </button>
+                </div>
+
                 <div id="collections-container">
                     <h3>📚 Available Collections</h3>
                     <div id="collections-list" class="collections-grid">
@@ -86,6 +108,21 @@
                         <label for="widget-message">Welcome Message:</label>
                         <input type="text" id="widget-message" value="Hello! How can I help you?">
                     </div>
+
+                    <div class="form-group">
+                        <label for="widget-color">Widget Color:</label>
+                        <input type="color" id="widget-color" value="#667eea">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="widget-send-text">Send Button Text:</label>
+                        <input type="text" id="widget-send-text" value="Send">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="widget-placeholder">Input Placeholder:</label>
+                        <input type="text" id="widget-placeholder" value="Ask me anything...">
+                    </div>
                 </div>
 
                 <div class="code-output">
@@ -98,9 +135,12 @@
 window.AIWidgetConfig = {
   apiBase: 'http://localhost:8000',
   collection: 'tbank_multi',
+<<<<<<< HEAD
 
+=======
+>>>>>>> widget-code-fixes
   title: 'AI Assistant',
-  language: 'en',
+  language: 'ru',
   welcomeMessage: 'Hello! How can I help you?'
 };
 &lt;/script&gt;
@@ -119,9 +159,7 @@ window.AIWidgetConfig = {
             </section>
         </main>
 
-        <!-- Widget Embedding -->
-        <script src="/widget/widget.js"></script>
-        <link rel="stylesheet" href="/widget/widget.css">
+
 
         <footer>
             <p>Built with FastAPI, Qdrant, and OpenAI</p>

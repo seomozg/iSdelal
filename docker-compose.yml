@@ -17,6 +17,8 @@ services:
     build: ./backend
     container_name: rag-backend
     env_file: ./backend/.env
+    environment:
+      - ALLOW_ALL_ORIGINS=true
     ports:
       - '8000:8000'
     depends_on:
@@ -26,7 +28,7 @@ services:
       - ./frontend:/app/frontend:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

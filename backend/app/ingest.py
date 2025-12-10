@@ -1,16 +1,14 @@
 import requests
 from .utils import html_to_text, chunk_text
 from .qdrant_client import get_qdrant_client
-from openai import OpenAI
 import uuid
 import os
 from urllib.parse import urljoin, urlparse
 from collections import deque
 import asyncio
 import time
-from typing import Dict, Any
+from typing import Dict, Any, List
 
-EMBED_MODEL = os.getenv("EMBED_MODEL", "text-embedding-3-large")
 CRAWL_MAX_PAGES = int(os.getenv("CRAWL_MAX_PAGES", 50))
 PLAYWRIGHT_MAX_PAGES = int(os.getenv("PLAYWRIGHT_MAX_PAGES", 30))
 CRAWL_TIMEOUT = int(os.getenv("CRAWL_TIMEOUT", 30))
@@ -18,10 +16,35 @@ NAVIGATION_TIMEOUT = int(os.getenv("NAVIGATION_TIMEOUT", 60))
 USE_PLAYWRIGHT = os.getenv("USE_PLAYWRIGHT", "true").lower() == "true"
 INGEST_TIMEOUT_SECONDS = int(os.getenv("INGEST_TIMEOUT_SECONDS", 600))  # global timeout per ingest job
 
-client_openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# We'll use Jina AI API for embeddings instead of local model
+import os
+
+# Get Jina API key from environment
+JINA_API_KEY = os.getenv("JINA_API_KEY")
+JINA_EMBEDDING_URL = "https://api.jina.ai/v1/embeddings"
 
 # In-memory job tracker for background ingest tasks
 _ingest_jobs: Dict[str, Dict[str, Any]] = {}
+
+# Track active ingest jobs per collection (collection -> list of active job_ids)
+_active_collection_ingests: Dict[str, List[str]] = {}
+
+
+def _get_collection_active_ingests(collection_name: str) -> List[Dict[str, Any]]:
+    """Get all active ingest jobs for a collection."""
+    if collection_name not in _active_collection_ingests:
+        return []
+
+    active_jobs = []
+    for job_id in _active_collection_ingests[collection_name][:]:  # copy to avoid iteration issues
+        job_info = _get_job_status(job_id)
+        if job_info.get("status") in ["pending", "running"]:
+            active_jobs.append(job_info)
+        else:
+            # Remove completed/failed jobs from active list
+            _active_collection_ingests[collection_name].remove(job_id)
+
+    return active_jobs
 
 
 def _get_job_status(job_id: str) -> Dict[str, Any]:
@@ -55,12 +78,13 @@ def _get_job_status(job_id: str) -> Dict[str, Any]:
     return job
 
 
-def _create_job(job_id: str, mode: str, target: str) -> None:
+def _create_job(job_id: str, mode: str, target: str, collection: str = None) -> None:
     """Initialize a new ingest job."""
     _ingest_jobs[job_id] = {
         "status": "pending",
         "mode": mode,  # "url", "urls", or "crawl"
         "target": target,  # URL or list representation
+        "collection": collection,  # Collection name for this job
         "created_at": time.time(),  # for safety timeout in status endpoint
         "progress": {
             "pages_fetched": 0,
@@ -73,14 +97,70 @@ def _create_job(job_id: str, mode: str, target: str) -> None:
         "result": None
     }
 
+    # Track active ingests per collection
+    if collection and collection not in _active_collection_ingests:
+        _active_collection_ingests[collection] = []
+    if collection:
+        _active_collection_ingests[collection].append(job_id)
+
 
 def embed_texts(texts):
-    """Embed texts using OpenAI API."""
-    resp = client_openai.embeddings.create(
-        model=EMBED_MODEL,
-        input=texts
-    )
-    return [item.embedding for item in resp.data]
+    """Embed texts using Jina AI API."""
+    if not JINA_API_KEY:
+        raise Exception("JINA_API_KEY not set in environment variables")
+
+    print(f"🔑 JINA_API_KEY starts with: {JINA_API_KEY[:10]}...")  # Debug log
+
+    try:
+        # Jina AI can handle batches, but let's keep it reasonable
+        batch_size = 5  # Smaller batches for debugging
+        all_embeddings = []
+
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i + batch_size]
+            print(f"📦 Processing batch {i//batch_size + 1} with {len(batch)} texts")
+
+            response = requests.post(
+                JINA_EMBEDDING_URL,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {JINA_API_KEY}"
+                },
+                json={
+                    "model": "jina-embeddings-v2-base-en",  # Free tier model
+                    "input": batch
+                }
+            )
+
+            print(f"🌐 API Response status: {response.status_code}")
+
+            if response.status_code != 200:
+                print(f"❌ Jina API error: {response.status_code} - {response.text}")
+                # Return empty embeddings for this batch
+                all_embeddings.extend([[] for _ in batch])
+                continue
+
+            data = response.json()
+            print(f"📊 API Response data keys: {list(data.keys())}")
+
+            if "data" not in data:
+                print(f"❌ No 'data' in response: {data}")
+                all_embeddings.extend([[] for _ in batch])
+                continue
+
+            embeddings = [item["embedding"] for item in data["data"]]
+            print(f"✅ Got {len(embeddings)} embeddings, first vector length: {len(embeddings[0]) if embeddings else 0}")
+            all_embeddings.extend(embeddings)
+
+        print(f"🎉 Successfully embedded {len(texts)} texts using Jina AI, total vectors: {len(all_embeddings)}")
+        return all_embeddings
+
+    except Exception as e:
+        print(f"💥 Jina AI embedding failed: {e}")
+        import traceback
+        traceback.print_exc()
+        # Return empty embeddings for all texts in case of failure
+        return [[] for _ in texts]
 
 
 async def fetch_with_playwright(url: str, timeout: int = CRAWL_TIMEOUT) -> str:
@@ -343,31 +423,50 @@ async def ingest_url(url: str, collection_name: str = "site_collection", job_id:
     # 2. Collect all chunks and their metadata across all pages
     all_chunks = []
     all_urls = []
-    
+
+    # Limit total chunks to avoid excessive API costs and processing time
+    MAX_TOTAL_CHUNKS = 100
+    chunks_per_page = MAX_TOTAL_CHUNKS // len(pages) if pages else MAX_TOTAL_CHUNKS
+
     for page_url, html_content in pages:
+        if len(all_chunks) >= MAX_TOTAL_CHUNKS:
+            break  # Stop if we've reached the limit
+
         try:
             text = html_to_text(html_content)
+
+            # Skip pages that are too short or too long
+            word_count = len(text.split())
+            if word_count < 10:  # Skip nearly empty pages
+                continue
+            if word_count > 5000:  # Limit very large pages
+                # Take first part of long pages only
+                text = ' '.join(text.split()[:5000])
+
             chunks = chunk_text(text)
+            # Limit chunks per page to distribute evenly
+            chunks = chunks[:chunks_per_page] if chunks else []
+
             all_chunks.extend(chunks)
             all_urls.extend([page_url] * len(chunks))
 
             if job_id in _ingest_jobs:
                 _ingest_jobs[job_id]["progress"].update({
                     "chunks_extracted": len(all_chunks),
-                    "message": f"Extracting chunks... ({len(all_chunks)} so far)"
+                    "message": f"Extracting chunks... ({len(all_chunks)}/{MAX_TOTAL_CHUNKS})"
                 })
         except Exception as e:
             print(f"Warning: Failed to process {page_url}: {e}")
             continue
-    
+
     if not all_chunks:
         if job_id in _ingest_jobs:
             _ingest_jobs[job_id]["progress"].update({
                 "message": "No chunks extracted from pages"
             })
         return {"status": "error", "detail": "No chunks extracted from pages"}
-    
-    print(f"Total chunks extracted: {len(all_chunks)}")
+
+    print(f"Total chunks extracted: {len(all_chunks)} (limited to {MAX_TOTAL_CHUNKS} max)")
 
     # 3. Create embeddings for all chunks (run sync embedding in thread)
     print("Creating embeddings...")
@@ -391,15 +490,9 @@ async def ingest_url(url: str, collection_name: str = "site_collection", job_id:
         # Try to get collection to check if it exists
         collections = client_qdrant.get_collections()
         collection_exists = any(col.name == collection_name for col in collections.collections)
-    except Exception:
-        collection_exists = False
-    
-    if collection_exists:
-        print(f"Collection '{collection_name}' exists, will add/update points")
-    else:
-        print(f"Creating new collection '{collection_name}'...")
-        # Use modern create_collection for qdrant-client 1.x
-        try:
+
+        if not collection_exists:
+            print(f"Creating new collection '{collection_name}'...")
             client_qdrant.create_collection(
                 collection_name=collection_name,
                 vectors_config={
@@ -407,9 +500,12 @@ async def ingest_url(url: str, collection_name: str = "site_collection", job_id:
                     "distance": "Cosine"
                 }
             )
-        except Exception as e:
-            print(f"Warning: create_collection failed ({e}), attempting upsert anyway")
-            # Collection might already exist, upsert will work either way
+        else:
+            print(f"Collection '{collection_name}' exists, will add/update points")
+
+    except Exception as e:
+        print(f"Warning: Collection check/create failed ({e}), attempting upsert anyway")
+        # Collection might already exist or creation is in progress, upsert will work either way
     
     # 6. Create points (without vector name)
     points = []

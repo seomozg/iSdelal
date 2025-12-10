@@ -33,9 +33,13 @@ class RAGFrontend {
     init() {
         this.bindEvents();
         this.loadCollections();
+        this.loadActiveProcesses(); // Load active ingestion processes
         this.updateWidgetCode();
         this.restoreJobFromStorage();
         this.addLogEntry('System initialized. Ready for content ingestion.');
+
+        // Auto-refresh active processes every 30 seconds
+        setInterval(() => this.loadActiveProcesses(), 30000);
     }
 
     restoreJobFromStorage() {
@@ -84,6 +88,9 @@ class RAGFrontend {
         document.getElementById('widget-collection').addEventListener('change', () => this.updateWidgetCode());
         document.getElementById('widget-title').addEventListener('input', () => this.updateWidgetCode());
         document.getElementById('widget-message').addEventListener('input', () => this.updateWidgetCode());
+        document.getElementById('widget-color').addEventListener('input', () => this.updateWidgetCode());
+        document.getElementById('widget-send-text').addEventListener('input', () => this.updateWidgetCode());
+        document.getElementById('widget-placeholder').addEventListener('input', () => this.updateWidgetCode());
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
@@ -91,6 +98,12 @@ class RAGFrontend {
                 this.startIngestion();
             }
         });
+
+        // Active processes refresh button
+        const refreshBtn = document.getElementById('refresh-processes-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => this.loadActiveProcesses());
+        }
     }
 
     async startIngestion() {
@@ -104,6 +117,7 @@ class RAGFrontend {
         // Generate collection name from URL
         const collectionInput = this.generateCollectionName(urlInput);
         document.getElementById('collection-input').value = collectionInput;
+        console.log(`🎯 Generated collection name: "${collectionInput}" for URL: "${urlInput}"`);
 
         if (!collectionInput) {
             this.showError('Please enter a collection name');
@@ -280,6 +294,61 @@ class RAGFrontend {
         }
     }
 
+    async loadActiveProcesses() {
+        try {
+            const activeProcessesContainer = document.getElementById('active-processes-container');
+            const activeProcessesList = document.getElementById('active-processes-list');
+
+            // Show loading state
+            activeProcessesList.innerHTML = '<div class="process-loading">Loading ingestion jobs...</div>';
+
+            // Try active processes first, then recent jobs
+            let response = await fetch(`${this.apiBase}/ingest/active`);
+            let data;
+
+            if (response.ok) {
+                data = await response.json();
+                if (!data.active_processes || data.active_processes.length === 0) {
+                    // No active processes, try recent jobs
+                    response = await fetch(`${this.apiBase}/ingest/jobs?limit=20`);
+                    data = await response.json();
+                    data.active_processes = data.jobs || [];
+                }
+            } else {
+                // Fallback to recent jobs if active endpoint fails
+                response = await fetch(`${this.apiBase}/ingest/jobs?limit=20`);
+                data = await response.json();
+                data.active_processes = data.jobs || [];
+            }
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            // Clear existing
+            activeProcessesList.innerHTML = '';
+
+            if (data.active_processes && data.active_processes.length > 0) {
+                // Show container
+                activeProcessesContainer.style.display = 'block';
+
+                data.active_processes.forEach(process => {
+                    this.addActiveProcessCard(process);
+                });
+            } else {
+                activeProcessesList.innerHTML = '<div class="process-loading">No ingestion jobs found</div>';
+                // Still show container but with empty message
+                activeProcessesContainer.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Error loading ingestion jobs:', error);
+            document.getElementById('active-processes-list').innerHTML =
+                '<div class="process-loading">Error loading ingestion jobs</div>';
+            // Show container even on error
+            document.getElementById('active-processes-container').style.display = 'block';
+        }
+    }
+
     addCollectionCard(collectionName) {
         const collectionsList = document.getElementById('collections-list');
 
@@ -299,6 +368,30 @@ class RAGFrontend {
 
         // Load collection stats
         this.loadCollectionStats(collectionName, card);
+    }
+
+    addActiveProcessCard(process) {
+        const activeProcessesList = document.getElementById('active-processes-list');
+
+        const card = document.createElement('div');
+        card.className = 'process-card';
+        card.innerHTML = `
+            <div class="process-header">
+                <div class="process-collection">${process.collection}</div>
+                <div class="process-status status-${process.status}">${this.capitalizeFirst(process.status)}</div>
+            </div>
+            <div class="process-details">
+                <div class="process-url">🌐 ${process.url}</div>
+                <div class="process-job-id">🆔 ${process.job_id || 'N/A'}</div>
+                <div class="process-progress">
+                    ${process.progress?.message || 'Processing...'}
+                    ${process.progress?.pages_fetched ? ` (${process.progress.pages_fetched} pages)` : ''}
+                </div>
+                ${process.created_at ? `<div class="process-time">🕒 Started: ${new Date(process.created_at * 1000).toLocaleTimeString()}</div>` : ''}
+            </div>
+        `;
+
+        activeProcessesList.appendChild(card);
     }
 
     async loadCollectionStats(collectionName, cardElement) {
@@ -336,6 +429,9 @@ class RAGFrontend {
         const collection = document.getElementById('widget-collection').value;
         const title = document.getElementById('widget-title').value;
         const message = document.getElementById('widget-message').value;
+        const color = document.getElementById('widget-color').value;
+        const sendText = document.getElementById('widget-send-text').value;
+        const placeholder = document.getElementById('widget-placeholder').value;
 
         const code = `<script>
 window.AIWidgetConfig = {
@@ -343,10 +439,13 @@ window.AIWidgetConfig = {
   collection: '${collection}',
   title: '${title}',
   language: 'en',
-  welcomeMessage: '${message}'
+  welcomeMessage: '${message}',
+  color: '${color}',
+  sendButtonText: '${sendText}',
+  inputPlaceholder: '${placeholder}'
 };
 </script>
-<script src="${this.apiBase}/widget/widget.js"></script>`;
+<script src="http://localhost:8000/widget/widget.js"></script>`;
 
         document.getElementById('widget-code').textContent = code;
 
@@ -357,7 +456,10 @@ window.AIWidgetConfig = {
                 collection,
                 title,
                 language: 'en',
-                welcomeMessage: message
+                welcomeMessage: message,
+                color,
+                sendText,
+                placeholder
             });
         }
     }
