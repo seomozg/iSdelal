@@ -56,7 +56,29 @@
         }
     }
 
-    function initWidget() {
+  function initWidget() {
+        // Add CSS
+        const style = document.createElement('style');
+        style.textContent = `
+#ai-widget * { box-sizing: border-box; }
+.ai-widget-toggle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+.ai-widget-card {
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  overflow: hidden;
+  background: white;
+  display: flex;
+  flex-direction: column;
+}`;
+        document.head.appendChild(style);
+
         button = document.createElement('button');
         button.innerText = config.title.substring(0,2).toUpperCase() || 'AI';
         button.style.cssText = `
