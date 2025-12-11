@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware import Middleware  # Added for production root path
+from fastapi.middleware.base import BaseHTTPMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import os
@@ -10,7 +12,10 @@ from .qdrant_client import get_qdrant_client
 import uuid
 from .rag import query_and_build_context, call_llm_with_context
 
-app = FastAPI()
+# Production root path support (set to /iSdelal on server)
+ROOT_PATH = os.getenv("ROOT_PATH", "")  # Default empty for development
+
+app = FastAPI(root_path=ROOT_PATH)
 
 # Add CORS middleware - more secure configuration
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8080,http://localhost:8000,http://localhost:4173,http://localhost:4174").split(",")

@@ -309,11 +309,12 @@ RAG_TOP_K=10
 # Create production docker-compose.override.yml
 nano docker-compose.prod.yml
 
-# Production config:
+# Production config (replace /your-subpath with actual subpath like /iSdelal):
 version: '3.8'
 
 services:
   backend:
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --root-path /your-subpath
     environment:
       # Additional production env vars
       - ENVIRONMENT=production
