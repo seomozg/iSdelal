@@ -41,11 +41,6 @@ class ChatRequest(BaseModel):
     question: str
     collection: str = 'site_collection'
 
-<<<<<<< HEAD
-=======
-
-
->>>>>>> widget-code-fixes
 @app.post('/ingest')
 async def ingest(req: IngestRequest, background_tasks: BackgroundTasks = None):
     try:
@@ -150,8 +145,6 @@ async def get_all_ingestions(limit: int = 10):
 
 @app.post('/chat')
 async def chat(req: ChatRequest):
-<<<<<<< HEAD
-=======
     # Check if there are any active ingest processes for this collection
     active_ingests = _get_collection_active_ingests(req.collection)
 
@@ -169,7 +162,6 @@ async def chat(req: ChatRequest):
         }
 
     # No active ingest processes - proceed with normal chat
->>>>>>> widget-code-fixes
     # 1) embed question
     embs = embed_texts([req.question])
     q_emb = embs[0]
