@@ -1,8 +1,6 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware import Middleware  # Added for production root path
-from fastapi.middleware.base import BaseHTTPMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import os
