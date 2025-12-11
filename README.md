@@ -392,7 +392,7 @@ window.AIWidgetConfig = {
 | API not responding | Check `docker compose logs backend` |
 | Hot reload not working | Restart with `docker compose restart backend` |
 | Qdrant data lost | Use `docker compose down` (not `down -v`) to preserve data |
-| OpenAI API errors | Verify `OPENAI_API_KEY` in `.env` |
+| API key errors | Verify `DEEPSEEK_API_KEY` and `JINA_API_KEY` in `.env` |
 | SSL cert expired | Run `sudo certbot renew` |
 | Domain not working | Check DNS propagation (may take 24-48h) |
 | Service crashes | Check system resources: `htop` , free memory `free -h` |

@@ -1,6 +1,6 @@
 ## Quick Repo Summary
 
-This project is a lightweight RAG kit: Qdrant (vector DB) + FastAPI backend (OpenAI embeddings + chat) + Nginx reverse-proxy + a small JS widget. The backend lives in `backend/app`; static widget files live in `widget/`. Docker Compose wires the three services together.
+This project is a lightweight RAG kit: Qdrant (vector DB) + FastAPI backend (Jina embeddings + DeepSeek chat) + Nginx reverse-proxy + a small JS widget. The backend lives in `backend/app`; static widget files live in `widget/`. Docker Compose wires the three services together.
 
 **Why this structure**: containers isolate Qdrant, the API, and static delivery. The backend is responsible for crawling/ingesting pages into Qdrant and exposing two main API endpoints (`/ingest`, `/chat`) which are proxied under `/api/` by Nginx.
 
@@ -9,7 +9,7 @@ This project is a lightweight RAG kit: Qdrant (vector DB) + FastAPI backend (Ope
 - `backend/app/ingest.py` — **crawls site from URL** (with auto-link discovery) **or indexes explicit list of URLs**. Chunks text, creates embeddings, upserts to Qdrant (incremental, no collection recreation).
 - `backend/app/rag.py` — search Qdrant using query embedding and build prompt for LLM.
 - `backend/app/qdrant_client.py` — Qdrant connection helper with version-agnostic fallback for old `qdrant-client` versions.
-- `backend/.env.example` — env vars: `OPENAI_API_KEY`, `API_KEY`, `QDRANT_HOST/PORT`, `EMBED_MODEL`, `CRAWL_MAX_PAGES`, `CRAWL_TIMEOUT`.
+- `backend/.env.example` — env vars: `JINA_API_KEY`, `DEEPSEEK_API_KEY`, `API_KEY`, `QDRANT_HOST/PORT`, `EMBED_MODEL`, `CRAWL_MAX_PAGES`, `CRAWL_TIMEOUT`.
 - `backend/tests/test_api.py` — pytest suite for health, auth, chat, ingest, and Qdrant connection.
 - `widget/widget.js` — calls backend `/api/chat`, expects `window.AIWidgetConfig` or `AIWidget.init()`.
 - `docker-compose.yml` / `docker-compose.override.yml` — prod vs dev (override mounts backend, enables hot-reload).
@@ -32,10 +32,11 @@ This project is a lightweight RAG kit: Qdrant (vector DB) + FastAPI backend (Ope
 - All `/ingest` and `/chat` require header `X-API-Key: <api_key>`
 
 **Important env vars** (see `backend/.env.example`)
-- `OPENAI_API_KEY` — OpenAI key for embeddings + LLM
+- `JINA_API_KEY` — Jina AI key for embeddings
+- `DEEPSEEK_API_KEY` — DeepSeek key for LLM responses
 - `API_KEY` — shared secret (sent in `X-API-Key` header)
 - `QDRANT_HOST`, `QDRANT_PORT` — Qdrant address (default: `qdrant`, `6333`)
-- `EMBED_MODEL` — OpenAI embedding model (default: `text-embedding-3-large`)
+- `EMBED_MODEL` — Jina embedding model (default: `jina-embeddings-v2-base-en`)
 - `RAG_TOP_K` — max context snippets for chat (default: `5`)
 - `CRAWL_MAX_PAGES` — max pages to crawl (default: `50`)
 - `CRAWL_TIMEOUT` — seconds per page (default: `30`)
