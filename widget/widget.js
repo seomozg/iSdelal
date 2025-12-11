@@ -40,6 +40,8 @@
   config.title = window.AIWidgetConfig?.title || t.title;
   config.placeholder = window.AIWidgetConfig?.placeholder || t.placeholder;
   config.send = t.send;
+  config.sendText = window.AIWidgetConfig?.sendText || t.send;
+  config.color = window.AIWidgetConfig?.color;
 
   // Widget mount variable
   var mount;
@@ -276,54 +278,5 @@
   } else {
     createWidget();
   }
-
-  // Initialize DOM element references after a small delay
-  setTimeout(() => {
-    messagesEl = document.getElementById('ai-messages');
-    inputEl = document.getElementById('ai-input');
-    sendBtn = document.getElementById('ai-send');
-    toggleBtn = document.getElementById('ai-toggle');
-    cardEl = document.getElementById('ai-card');
-    closeBtn = document.getElementById('ai-close');
-    typingEl = document.getElementById('ai-typing');
-
-
-    // Set up event listeners now that elements exist
-    if (toggleBtn) toggleBtn.addEventListener('click', toggleWidget);
-    if (closeBtn) closeBtn.addEventListener('click', toggleWidget);
-
-    if (sendBtn) {
-      sendBtn.addEventListener('click', () => {
-        const question = inputEl ? inputEl.value.trim() : '';
-        if (question) {
-          sendQuestion(question);
-          if (inputEl) inputEl.value = '';
-        }
-      });
-    }
-
-    if (inputEl) {
-      inputEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          if (sendBtn) sendBtn.click();
-        }
-      });
-    }
-
-    // Click outside to close
-    document.addEventListener('click', (e) => {
-      if (isOpen && mount && !mount.contains(e.target)) {
-        toggleWidget();
-      }
-    });
-
-    // Auto-show welcome message (only if elements exist)
-    if (config.welcomeMessage && toggleBtn) {
-      setTimeout(() => {
-        if (!isOpen) toggleWidget();
-      }, 1000);
-    }
-  }, 100);
 
 })();
