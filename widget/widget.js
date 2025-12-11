@@ -1,282 +1,162 @@
+// AI Widget
 (function(){
-  'use strict';
+    'use strict';
 
-  // Configuration with defaults
-  const config = {
-    // Our FastAPI backend is mounted at the origin, so default apiBase is just location.origin
-    apiBase: window.AIWidgetConfig?.apiBase || location.origin,
-    collection: window.AIWidgetConfig?.collection || 'default_collection',
-    apiKey: window.AIWidgetConfig?.apiKey || 'your-api-key',
-    theme: window.AIWidgetConfig?.theme || 'default',
-    language: window.AIWidgetConfig?.language || 'ru',
-    position: window.AIWidgetConfig?.position || 'bottom-right',
-    welcomeMessage: window.AIWidgetConfig?.welcomeMessage || null,
-    maxMessages: window.AIWidgetConfig?.maxMessages || 50
-  };
-
-  // Translations
-  const translations = {
-    en: {
-      title: 'AI Assistant',
-      placeholder: 'Ask me anything...',
-      send: 'Send',
-      typing: 'AI is typing...',
-      error: 'Sorry, something went wrong. Please try again.',
-      networkError: 'Network error. Please check your connection.'
-    },
-    ru: {
-      title: 'ИИ Помощник',
-      placeholder: 'Задайте вопрос...',
-      send: 'Отправить',
-      typing: 'ИИ печатает...',
-      error: 'Извините, произошла ошибка. Попробуйте еще раз.',
-      networkError: 'Ошибка сети. Проверьте подключение.'
-    }
-  };
-
-  const t = translations[config.language] || translations.en;
-
-  // Set config title and placeholder from translations or config
-  config.title = window.AIWidgetConfig?.title || t.title;
-  config.placeholder = window.AIWidgetConfig?.placeholder || t.placeholder;
-  config.send = t.send;
-  config.sendText = window.AIWidgetConfig?.sendText || t.send;
-  config.color = window.AIWidgetConfig?.color;
-
-  // Widget mount variable
-  var mount;
-
-  // Load CSS
-  function loadCSS() {
-    const styleHref = config.apiBase.replace('/api', '') + '/widget/widget.css';
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = styleHref;
-    document.head.appendChild(link);
-  }
-
-  // Create widget HTML
-  function createWidget() {
-    const positions = {
-      'bottom-right': 'bottom:24px;right:24px;',
-      'bottom-left': 'bottom:24px;left:24px;',
-      'top-right': 'top:24px;right:24px;',
-      'top-left': 'top:24px;left:24px;'
+    let config = {
+        apiBase: window.AIWidgetConfig?.apiBase || location.origin,
+        collection: window.AIWidgetConfig?.collection || 'default_collection',
+        message: window.AIWidgetConfig?.welcomeMessage || 'Hello! How can I help you?',
+        color: window.AIWidgetConfig?.color || '#667eea',
+        title: window.AIWidgetConfig?.title || 'AI Assistant',
+        placeholder: window.AIWidgetConfig?.placeholder || 'Ask me anything...',
+        sendText: window.AIWidgetConfig?.sendText || 'Send'
     };
 
-    mount = document.createElement('div');
-    mount.id = 'ai-widget';
-    mount.innerHTML = `
-      <div class="ai-widget-container" style="position:fixed;${positions[config.position]}z-index:99999">
-        <div class="ai-widget-toggle" id="ai-toggle">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-          </svg>
-        </div>
-        <div class="ai-widget-card" id="ai-card" style="display:none;">
-          <div class="ai-widget-header">
-            <div class="ai-widget-title">${config.title}</div>
-            <button class="ai-widget-close" id="ai-close">&times;</button>
-          </div>
-          <div class="ai-widget-messages" id="ai-messages"></div>
-          <div class="ai-widget-input-row">
-            <input id="ai-input" class="ai-widget-input" placeholder="${config.placeholder}" />
-            <button id="ai-send" class="ai-widget-btn">${config.sendText}</button>
-          </div>
-          <div class="ai-widget-typing" id="ai-typing" style="display:none;">
-            <div class="ai-widget-typing-dots">
-              <span></span><span></span><span></span>
-            </div>
-            ${t.typing}
-          </div>
-        </div>
-      </div>
-    `;
-    console.log('Appending widget to body...');
-    document.body.appendChild(mount);
+    let button, chat, input, sendButton, closeButton, titleEl, messagesDiv;
+    let messages = [];
 
-    // Set custom styles
-    document.documentElement.style.setProperty('--ai-color', config.color);
-    const toggleBtn = mount.querySelector('#ai-toggle');
-    if (toggleBtn) {
-      toggleBtn.style.backgroundColor = config.color;
-      toggleBtn.style.color = 'white';
-      toggleBtn.style.border = 'none';
-      toggleBtn.style.borderRadius = '50%';
+    function appendMessage(text, type) {
+        messages.push({text, type});
+        const msgDiv = document.createElement('div');
+        msgDiv.style.cssText = `
+            margin: 5px 0;
+            padding: 8px 12px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+            ${type === 'user' ? 'background: #007bff; color: white; margin-left: auto; text-align: right;' : 'background: #e9ecef; color: black;'}
+        `;
+        msgDiv.innerText = text;
+        messagesDiv.appendChild(msgDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
-    console.log('Widget appended');
-  }
 
+    async function sendMessage() {
+        const q = input.value.trim();
+        if (!q) return;
+        appendMessage(q, 'user');
+        input.value = '';
 
-  // Widget functionality
-  let isOpen = false;
-  let messageHistory = [];
-  let messagesEl, inputEl, sendBtn, toggleBtn, cardEl, closeBtn, typingEl;
+        sendButton.disabled = true;
+        sendButton.innerText = 'Sending...';
 
-  function appendMessage(text, type, timestamp = Date.now()) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `ai-widget-message ai-widget-message-${type}`;
-    messageDiv.innerHTML = `
-      <div class="ai-widget-message-content">${text}</div>
-      <div class="ai-widget-message-time">${new Date(timestamp).toLocaleTimeString()}</div>
-    `;
-
-    messagesEl.appendChild(messageDiv);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-
-    // Store in history
-    messageHistory.push({ text, type, timestamp });
-    if (messageHistory.length > config.maxMessages) {
-      messageHistory.shift();
-      if (messagesEl.children.length > config.maxMessages) {
-        messagesEl.removeChild(messagesEl.children[0]);
-      }
-    }
-  }
-
-  function showTyping() {
-    typingEl.style.display = 'flex';
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
-
-  function hideTyping() {
-    typingEl.style.display = 'none';
-  }
-
-  async function sendQuestion(question) {
-    if (!question.trim()) return;
-
-    appendMessage(question, 'user');
-    showTyping();
-
-    try {
-      const response = await fetch(config.apiBase + '/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': config.apiKey
-        },
-        body: JSON.stringify({
-          question: question,
-          collection: config.collection
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        appendMessage(data.answer || 'Sorry, I couldn\'t generate a response.', 'bot');
-      } else {
-        appendMessage(data.detail || t.error, 'bot');
-      }
-    } catch (error) {
-      console.error('AI Widget Error:', error);
-      appendMessage(t.networkError, 'bot');
-    } finally {
-      hideTyping();
-    }
-  }
-
-  function toggleWidget() {
-    isOpen = !isOpen;
-    cardEl.style.display = isOpen ? 'flex' : 'none';
-    toggleBtn.style.display = isOpen ? 'none' : 'flex';
-
-    if (isOpen && messageHistory.length === 0 && config.welcomeMessage) {
-      setTimeout(() => appendMessage(config.welcomeMessage, 'bot'), 300);
-    }
-  }
-
-  // Initialize DOM element references after a small delay
-  setTimeout(() => {
-    messagesEl = document.getElementById('ai-messages');
-    inputEl = document.getElementById('ai-input');
-    sendBtn = document.getElementById('ai-send');
-    toggleBtn = document.getElementById('ai-toggle');
-    cardEl = document.getElementById('ai-card');
-    closeBtn = document.getElementById('ai-close');
-    typingEl = document.getElementById('ai-typing');
-
-
-    // Set up event listeners now that elements exist
-    if (toggleBtn) toggleBtn.addEventListener('click', toggleWidget);
-    if (closeBtn) closeBtn.addEventListener('click', toggleWidget);
-
-    if (sendBtn) {
-      sendBtn.addEventListener('click', () => {
-        const question = inputEl ? inputEl.value.trim() : '';
-        if (question) {
-          sendQuestion(question);
-          if (inputEl) inputEl.value = '';
+        try {
+            const response = await fetch(config.apiBase + '/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({question: q, collection: config.collection})
+            });
+            const data = await response.json();
+            appendMessage(data.answer || 'Error', 'bot');
+        } catch (error) {
+            appendMessage('Network error', 'bot');
+        } finally {
+            sendButton.disabled = false;
+            sendButton.innerText = config.sendText;
         }
-      });
     }
 
-    if (inputEl) {
-      inputEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          if (sendBtn) sendBtn.click();
+    function initWidget() {
+        button = document.createElement('button');
+        button.innerText = config.title.substring(0,2).toUpperCase() || 'AI';
+        button.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: ${config.color};
+            color: white;
+            border: none;
+            cursor: pointer;
+            z-index: 99999;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        `;
+
+        chat = document.createElement('div');
+        chat.style.cssText = `
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 380px;
+            height: 400px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 99999;
+            flex-direction: column;
+        `;
+
+        const header = document.createElement('div');
+        header.style.cssText = `display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: ${config.color}; color: white; border-radius: 16px 16px 0 0;`;
+        titleEl = document.createElement('div');
+        titleEl.innerText = config.title;
+        closeButton = document.createElement('button');
+        closeButton.innerText = '×';
+        closeButton.style.cssText = `background: none; border: none; color: white; font-size: 24px; cursor: pointer;`;
+        closeButton.onclick = function() {
+            chat.style.display = 'none';
+            button.style.display = 'flex';
+        };
+        header.appendChild(titleEl);
+        header.appendChild(closeButton);
+        chat.appendChild(header);
+
+        messagesDiv = document.createElement('div');
+        messagesDiv.style.cssText = `flex: 1; overflow-y: auto; padding: 16px 20px;`;
+        chat.appendChild(messagesDiv);
+
+        if (config.message) {
+            appendMessage(config.message, 'bot');
         }
-      });
+
+        const inputRow = document.createElement('div');
+        inputRow.style.cssText = `display: flex; gap: 8px; padding: 16px 20px; border-top: 1px solid #e5e7eb;`;
+
+        input = document.createElement('input');
+        input.placeholder = config.placeholder;
+        input.style.cssText = `flex: 1; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 24px; outline: none;`;
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        sendButton = document.createElement('button');
+        sendButton.innerText = config.sendText;
+        sendButton.style.cssText = `padding: 12px 20px; border: none; border-radius: 24px; background: ${config.color}; color: white; cursor: pointer;`;
+        sendButton.onclick = sendMessage;
+
+        inputRow.appendChild(input);
+        inputRow.appendChild(sendButton);
+        chat.appendChild(inputRow);
+
+        button.onclick = function() {
+            chat.style.display = 'flex';
+            button.style.display = 'none';
+        };
+
+        document.body.appendChild(button);
+        document.body.appendChild(chat);
     }
 
-    // Auto-show welcome message (only if elements exist)
-    if (config.welcomeMessage && toggleBtn) {
-      setTimeout(() => {
-        if (!isOpen) toggleWidget();
-      }, 1000);
+    // API to update config
+    window.AIWidget = window.AIWidget || {};
+    window.AIWidget.init = (opts) => {
+        Object.assign(config, opts);
+        if (button) {
+            button.style.background = config.color;
+            button.innerText = config.title.substring(0,2).toUpperCase() || 'AI';
+        }
+        if (titleEl) titleEl.innerText = config.title;
+        if (input) input.placeholder = config.placeholder;
+        if (sendButton) sendButton.innerText = config.sendText;
+    };
+
+    if (document.readyState === 'complete') {
+        initWidget();
+    } else {
+        window.addEventListener('load', initWidget);
     }
-  }, 100);
-
-
-  // Click outside to close
-  document.addEventListener('click', (e) => {
-    if (isOpen && mount && !mount.contains(e.target)) {
-      toggleWidget();
-    }
-  });
-
-  // Public API
-  window.AIWidget = window.AIWidget || {};
-  window.AIWidget.init = (options) => {
-    Object.assign(config, options);
-    // Update UI for changed properties
-    if (options.title !== undefined) {
-      const titleEl = mount?.querySelector('.ai-widget-title');
-      if (titleEl) titleEl.textContent = config.title;
-    }
-    if (options.color !== undefined) {
-      document.documentElement.style.setProperty('--ai-color', config.color);
-    }
-    if (options.sendText !== undefined) {
-      const sendBtn = mount?.querySelector('#ai-send');
-      if (sendBtn) sendBtn.textContent = config.sendText;
-    }
-    if (options.placeholder !== undefined) {
-      const inputEl = mount?.querySelector('#ai-input');
-      if (inputEl) inputEl.placeholder = config.placeholder;
-    }
-  };
-
-  window.AIWidget.sendMessage = (message) => {
-    sendQuestion(message);
-  };
-
-  window.AIWidget.toggle = () => {
-    if (toggleBtn) toggleWidget();
-  };
-
-  window.AIWidget.isOpen = () => isOpen;
-
-  // Initialize widget
-  loadCSS();
-
-  // Wait for DOM ready before creating widget
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', createWidget);
-  } else {
-    createWidget();
-  }
-
 })();
