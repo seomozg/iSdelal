@@ -4,20 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RAG System - Content Ingestion & Widget Generator</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/static/styles.css">
 
     <!-- Widget Configuration and Embedding -->
     <script>
     window.AIWidgetConfig = {
-      apiBase: 'http://localhost:8000',
+      apiBase: window.location.origin,
       collection: 'tbank_multi',
       title: 'AI Assistant',
       language: 'ru',
       welcomeMessage: 'Hello! How can I help you?'
     };
     </script>
-    <script src="../widget/widget.js"></script>
-    <link rel="stylesheet" href="../widget/widget.css">
+    <script src="/widget/widget.js"></script>
+    <link rel="stylesheet" href="/widget/widget.css">
 </head>
 <body>
     <div class="container">

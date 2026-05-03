@@ -24,7 +24,7 @@ class RAGFrontend {
         }
     }
     constructor() {
-        this.apiBase = 'http://localhost:8000';
+        this.apiBase = window.location.origin;
         this.currentJobId = null;
         this.statusCheckInterval = null;
         this.init();
