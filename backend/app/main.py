@@ -28,10 +28,10 @@ app.add_middleware(
 
 # Mount static files
 app.mount("/widget", StaticFiles(directory="/app/widget"), name="widget")
-app.mount("/static", StaticFiles(directory="/app/frontend"), name="frontend_static")
+app.mount("/admin/static", StaticFiles(directory="/app/frontend"), name="frontend_static")
 
 # Routes that need to override static mounts should come AFTER the mounts
-@app.get("/")
+@app.get("/admin/")
 async def serve_frontend_index():
     return FileResponse("/app/frontend/index.html", media_type="text/html")
 
