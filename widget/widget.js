@@ -38,7 +38,7 @@
         input.value = '';
 
         sendButton.disabled = true;
-        sendButton.innerText = 'Sending...';
+        sendButton.innerHTML = '<span class="ai-widget-spinner"></span>';
 
         try {
             const response = await fetch(config.apiBase + '/chat', {
@@ -52,7 +52,7 @@
             appendMessage('Network error', 'bot');
         } finally {
             sendButton.disabled = false;
-            sendButton.innerText = config.sendText;
+            sendButton.innerHTML = config.sendText;
         }
     }
 
@@ -60,6 +60,17 @@
         // Add CSS
         const style = document.createElement('style');
         style.textContent = `
+.ai-widget-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: ai-spin 0.6s linear infinite;
+  vertical-align: middle;
+}
+@keyframes ai-spin { to { transform: rotate(360deg); } }
 #ai-widget * { box-sizing: border-box; }
 .ai-widget-toggle {
   width: 56px;
