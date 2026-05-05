@@ -94,6 +94,9 @@
             cursor: pointer;
             z-index: 99999;
             box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         `;
 
         chat = document.createElement('div');
@@ -140,14 +143,14 @@
 
         input = document.createElement('input');
         input.placeholder = config.placeholder;
-        input.style.cssText = `flex: 1; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 24px; outline: none;`;
+        input.style.cssText = `flex: 1; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 24px; outline: none; color: #1f2937; background: #ffffff;`;
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') sendMessage();
         });
 
         sendButton = document.createElement('button');
         sendButton.innerText = config.sendText;
-        sendButton.style.cssText = `padding: 12px 20px; border: none; border-radius: 24px; background: ${config.color}; color: white; cursor: pointer;`;
+        sendButton.style.cssText = `padding: 12px 20px; border: none; border-radius: 24px; background: ${config.color}; color: white; cursor: pointer; white-space: nowrap;`;
         sendButton.onclick = sendMessage;
 
         inputRow.appendChild(input);
