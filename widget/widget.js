@@ -88,6 +88,8 @@
                         fullText += token;
                         botMsg.innerText = fullText;
                         messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                        // Yield to browser to paint the update
+                        await new Promise(r => requestAnimationFrame(r));
                     }
                 }
             }
