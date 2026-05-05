@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -8,7 +9,7 @@ from typing import Optional, List
 from .ingest import ingest_url, ingest_urls, crawl_site, ingest_background, _get_job_status, _create_job, _get_collection_active_ingests, embed_texts, _active_collection_ingests, _ingest_jobs
 from .qdrant_client import get_qdrant_client
 import uuid
-from .rag import query_and_build_context, call_llm_with_context
+from .rag import query_and_build_context, call_llm_with_context, call_llm_stream
 
 # Production root path support (set to /iSdelal on server)
 ROOT_PATH = os.getenv("ROOT_PATH", "")  # Default empty for development
@@ -173,6 +174,39 @@ async def chat(req: ChatRequest):
     # 3) call LLM with context
     res = call_llm_with_context(req.question, snippets)
     return {'answer': res['answer'], 'status': 'ready'}
+
+
+@app.post('/chat/stream')
+async def chat_stream(req: ChatRequest):
+    # Check active ingests
+    active_ingests = _get_collection_active_ingests(req.collection)
+    if active_ingests:
+        return {
+            'answer': 'AI is still processing your website content. Please wait.',
+            'status': 'processing'
+        }
+
+    # 1) embed question
+    embs = embed_texts([req.question])
+    q_emb = embs[0]
+    # 2) query qdrant
+    snippets = query_and_build_context(q_emb, collection_name=req.collection)
+
+    # 3) stream LLM response
+    async def token_generator():
+        for token in call_llm_stream(req.question, snippets):
+            yield f"data: {token}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        token_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
 
 @app.get('/collections')
 async def get_collections():

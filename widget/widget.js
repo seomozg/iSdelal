@@ -40,16 +40,63 @@
         sendButton.disabled = true;
         sendButton.innerHTML = '<span class="ai-widget-spinner"></span>';
 
+        // Create placeholder bot message for streaming
+        const botMsg = document.createElement('div');
+        botMsg.style.cssText = `
+            margin: 5px 0;
+            padding: 8px 12px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+            background: #e9ecef;
+            color: black;
+        `;
+        botMsg.innerText = '';
+        messagesDiv.appendChild(botMsg);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
         try {
-            const response = await fetch(config.apiBase + '/chat', {
+            const response = await fetch(config.apiBase + '/chat/stream', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({question: q, collection: config.collection})
             });
-            const data = await response.json();
-            appendMessage(data.answer || 'Error', 'bot');
+
+            if (!response.ok) {
+                throw new Error('API error: ' + response.status);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let fullText = '';
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const token = line.slice(6);
+                        if (token === '[DONE]') {
+                            break;
+                        }
+                        fullText += token;
+                        botMsg.innerText = fullText;
+                        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                    }
+                }
+            }
+
+            if (!fullText) {
+                botMsg.innerText = 'No response';
+            }
         } catch (error) {
-            appendMessage('Network error', 'bot');
+            botMsg.innerText = 'Network error';
         } finally {
             sendButton.disabled = false;
             sendButton.innerHTML = config.sendText;

@@ -64,3 +64,31 @@ def call_llm_with_context(user_question: str, context_snippets: list):
     answer = response.choices[0].message.content
 
     return {"answer": answer}
+
+
+def call_llm_stream(user_question: str, context_snippets: list):
+    """
+    Stream tokens from DeepSeek LLM one by one.
+    Returns a generator that yields token strings.
+    """
+    prompt_parts = ["You are a website assistant. Use only the provided context:"]
+    for s in context_snippets:
+        prompt_parts.append("---")
+        prompt_parts.append(s["text"])
+    prompt_parts.append(f"---\nQuestion: {user_question}")
+
+    prompt = "\n".join(prompt_parts)
+
+    stream = client_llm.chat.completions.create(
+        model="deepseek-chat",
+        messages=[
+            {"role": "system", "content": "You are a helpful website assistant."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.2,
+        stream=True
+    )
+
+    for chunk in stream:
+        if chunk.choices[0].delta.content is not None:
+            yield chunk.choices[0].delta.content
