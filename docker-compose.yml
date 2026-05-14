@@ -23,9 +23,12 @@ services:
       - '8000:8000'
     depends_on:
       - qdrant
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./widget:/app/widget:ro
       - ./frontend:/app/frontend:ro
+      - ./click-ai-widget/dist:/app/landing:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget --spider -q http://localhost:8000/health || exit 1"]

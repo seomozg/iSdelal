@@ -12,3 +12,9 @@ openai
 pytest
 pytest-asyncio
 playwright
+sqlalchemy
+aiosqlite
+google-auth
+google-auth-oauthlib
+python-jose[cryptography]
+python-multipart

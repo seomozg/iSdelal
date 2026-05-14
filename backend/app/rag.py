@@ -62,8 +62,9 @@ def call_llm_with_context(user_question: str, context_snippets: list):
     )
 
     answer = response.choices[0].message.content
+    usage_total_tokens = response.usage.total_tokens if response.usage else 0
 
-    return {"answer": answer}
+    return {"answer": answer, "usage_total_tokens": usage_total_tokens}
 
 
 def call_llm_stream(user_question: str, context_snippets: list):

@@ -105,7 +105,7 @@ def _create_job(job_id: str, mode: str, target: str, collection: str = None) -> 
 
 
 def embed_texts(texts):
-    """Embed texts using Jina AI API."""
+    """Embed texts using Jina AI API. Returns (embeddings, total_tokens)."""
     if not JINA_API_KEY:
         raise Exception("JINA_API_KEY not set in environment variables")
 
@@ -115,6 +115,7 @@ def embed_texts(texts):
         # Jina AI can handle batches, but let's keep it reasonable
         batch_size = 5  # Smaller batches for debugging
         all_embeddings = []
+        total_jina_tokens = 0
 
         for i in range(0, len(texts), batch_size):
             batch = texts[i:i + batch_size]
@@ -143,6 +144,10 @@ def embed_texts(texts):
             data = response.json()
             print(f"📊 API Response data keys: {list(data.keys())}")
 
+            # Track Jina API tokens from usage
+            if "usage" in data and "total_tokens" in data["usage"]:
+                total_jina_tokens += data["usage"]["total_tokens"]
+
             if "data" not in data:
                 print(f"❌ No 'data' in response: {data}")
                 all_embeddings.extend([[] for _ in batch])
@@ -152,15 +157,15 @@ def embed_texts(texts):
             print(f"✅ Got {len(embeddings)} embeddings, first vector length: {len(embeddings[0]) if embeddings else 0}")
             all_embeddings.extend(embeddings)
 
-        print(f"🎉 Successfully embedded {len(texts)} texts using Jina AI, total vectors: {len(all_embeddings)}")
-        return all_embeddings
+        print(f"🎉 Successfully embedded {len(texts)} texts using Jina AI, total vectors: {len(all_embeddings)}, total tokens: {total_jina_tokens}")
+        return all_embeddings, total_jina_tokens
 
     except Exception as e:
         print(f"💥 Jina AI embedding failed: {e}")
         import traceback
         traceback.print_exc()
         # Return empty embeddings for all texts in case of failure
-        return [[] for _ in texts]
+        return [[] for _ in texts], 0
 
 
 async def fetch_with_playwright(url: str, timeout: int = CRAWL_TIMEOUT) -> str:
@@ -473,7 +478,8 @@ async def ingest_url(url: str, collection_name: str = "site_collection", job_id:
     if job_id in _ingest_jobs:
         _ingest_jobs[job_id]["progress"]["message"] = "Creating embeddings..."
 
-    embeddings = await asyncio.to_thread(embed_texts, all_chunks)
+    result = await asyncio.to_thread(embed_texts, all_chunks)
+    embeddings, jina_tokens = result if isinstance(result, tuple) else (result, 0)
     vector_size = len(embeddings[0]) if embeddings else 1536
 
     if job_id in _ingest_jobs:
@@ -549,13 +555,14 @@ async def ingest_url(url: str, collection_name: str = "site_collection", job_id:
     }
 
 
-async def ingest_urls(urls: list, collection_name: str = "site_collection"):
+async def ingest_urls(urls: list, collection_name: str = "site_collection", job_id: str | None = None):
     """
     Index a list of explicitly provided URLs (useful for SPA or when crawling fails).
     
     Args:
         urls: List of full URLs to index
         collection_name: Qdrant collection name
+        job_id: Optional job ID for progress tracking
         
     Returns: dict with indexing stats
     """
@@ -610,7 +617,8 @@ async def ingest_urls(urls: list, collection_name: str = "site_collection"):
     
     # 3. Create embeddings
     print("Creating embeddings...")
-    embeddings = await asyncio.to_thread(embed_texts, all_chunks)
+    result = await asyncio.to_thread(embed_texts, all_chunks)
+    embeddings, jina_tokens = result if isinstance(result, tuple) else (result, 0)
     vector_size = len(embeddings[0]) if embeddings else 1536
     
     # 4. Connect to Qdrant
