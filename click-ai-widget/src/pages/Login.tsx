@@ -14,21 +14,21 @@ export default function Login() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full p-8 bg-white rounded-2xl shadow-lg text-center">
-        <h1 className="text-2xl font-bold mb-2">Welcome to iSdelal</h1>
-        <p className="text-gray-500 mb-8">Sign in to manage your AI widgets</p>
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="max-w-md w-full p-8 bg-card rounded-2xl shadow-lg border border-border text-center">
+        <h1 className="text-2xl font-bold mb-2 text-foreground">Welcome to iSdelal</h1>
+        <p className="text-muted-foreground mb-8">Sign in to manage your AI widgets</p>
 
         <button
           onClick={login}
-          className="w-full flex items-center justify-center gap-3 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          className="w-full flex items-center justify-center gap-3 px-6 py-3 border border-border rounded-lg hover:bg-secondary transition-colors text-foreground"
         >
           <svg width="20" height="20" viewBox="0 0 20 20">
             <path d="M19.6 10.23c0-.82-.07-1.42-.2-2.05H10v3.72h5.5c-.24 1.26-.93 2.33-1.97 3.05l3.19 2.47c1.86-1.72 2.93-4.25 2.93-7.19z" fill="#4285F4"/>
