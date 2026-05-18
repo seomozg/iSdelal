@@ -276,6 +276,59 @@ section h3 {
     margin-bottom: 5px;
 }
 
+/* Global select styling */
+select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    transition: border-color 0.2s;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+select option {
+    background: var(--bg-card);
+    color: var(--text-primary);
+}
+
+/* Process progress text */
+.process-progress {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-top: 5px;
+}
+
+.process-time {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin-top: 3px;
+}
+
+/* Refresh button */
+#refresh-processes-btn {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 6px 14px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+#refresh-processes-btn:hover {
+    background: var(--border-color);
+    color: var(--text-primary);
+}
+
 /* Widget Section */
 #widget-code {
     background: #0f1729;

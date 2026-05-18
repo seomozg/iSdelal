@@ -342,6 +342,10 @@ async def runtime_crawl(start_url: str, max_pages: int = PLAYWRIGHT_MAX_PAGES, t
 
 async def crawl_site(start_url: str, max_pages: int = CRAWL_MAX_PAGES, timeout: int = CRAWL_TIMEOUT, job_id: str | None = None):
     """\n+    Crawl a website starting from start_url, following same-domain links.\n+\n+    Strategy:\n+    1) Try simple HTTP crawl via requests (fast, cheap).\n+    2) If it finds no pages and USE_PLAYWRIGHT is enabled, fallback to Playwright runtime crawler.\n+\n+    Returns: list of (url, html_content) tuples, max max_pages pages.\n+    """
+    # Normalize URL: prepend https:// if no scheme
+    if "://" not in start_url:
+        start_url = "https://" + start_url
+
     # 1) Static request-based crawl first
     visited = set()
     to_visit = deque([start_url])
