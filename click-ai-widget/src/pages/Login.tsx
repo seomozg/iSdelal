@@ -1,21 +1,43 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { sites as sitesApi } from "@/lib/api";
 
 export default function Login() {
-  const { login, isAuthenticated, loading } = useAuth();
+  const { login, isAuthenticated, loading, token } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [creatingSite, setCreatingSite] = useState(false);
+
+  const collectionFromUrl = searchParams.get("collection");
+  const urlFromUrl = searchParams.get("url");
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!isAuthenticated || creatingSite) return;
+
+    if (collectionFromUrl) {
+      setCreatingSite(true);
+      const createdUrl = urlFromUrl || `https://${collectionFromUrl.replace(/_/g, ".")}`;
+      sitesApi.create(createdUrl)
+        .then((site) => {
+          navigate(`/dashboard/sites/${site.id}`);
+        })
+        .catch(() => {
+          navigate("/dashboard/sites");
+        })
+        .finally(() => setCreatingSite(false));
+    } else {
       navigate("/dashboard");
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, collectionFromUrl, urlFromUrl]);
 
-  if (loading) {
+  if (loading || creatingSite) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+        <p className="text-muted-foreground text-sm">
+          {creatingSite ? "Создаём сайт в личном кабинете..." : "Загрузка..."}
+        </p>
       </div>
     );
   }
@@ -24,7 +46,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="max-w-md w-full p-8 bg-card rounded-2xl shadow-lg border border-border text-center">
         <h1 className="text-2xl font-bold mb-2 text-foreground">Добро пожаловать в Site-Agent</h1>
-        <p className="text-muted-foreground mb-8">Войдите, чтобы управлять вашими AI-виджетами</p>
+        <p className="text-muted-foreground mb-8">Войдите, чтобы управлять AI-виджетами</p>
 
         <button
           onClick={login}

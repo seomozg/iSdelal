@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Copy, Check, Code2, Info } from "lucide-react";
+import { Copy, Check, Code2, Info, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -22,20 +22,18 @@ interface WidgetCodeProps {
 const WidgetCode = ({ url, isVisible, config, collectionName }: WidgetCodeProps) => {
   const [copied, setCopied] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
-  const { t } = useLanguage();
-
-
+  const { t, language } = useLanguage();
 
   const widgetCode = `<script>
 window.AIWidgetConfig = {
   apiBase: window.location.origin,
   collection: '${collectionName}',
   title: '${config.title}',
-  language: 'en',
+  language: '${language}',
   welcomeMessage: '${config.welcomeMessage}',
   color: '${config.color}',
-  sendButtonText: '${config.sendButtonText}',
-  inputPlaceholder: '${config.inputPlaceholder}'
+  sendText: '${config.sendButtonText}',
+  placeholder: '${config.inputPlaceholder}'
 };
 </script>
 <script src="${window.location.origin}/widget/widget.js"></script>`;
@@ -141,16 +139,32 @@ window.AIWidgetConfig = {
           <div className="mt-4 flex items-start gap-3 p-4 rounded-xl bg-secondary/50 border border-border/50">
             <Info className="w-5 h-5 text-primary mt-0.5 shrink-0" />
             <p className="text-sm text-muted-foreground">
-              {t.widgetCode.instructions} <code className="text-primary">&lt;/body&gt;</code> вашего сайта.
+              {t.widgetCode.instructions} <code className="text-primary">{'</body>'}</code> вашего сайта.
             </p>
           </div>
+        </motion.div>
+
+        {/* Login to save button */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-6 text-center"
+        >
+          <a
+            href={`/login?collection=${encodeURIComponent(collectionName)}`}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
+          >
+            <LogIn className="w-4 h-4" />
+            Войти и сохранить агента в личном кабинете
+          </a>
         </motion.div>
 
         {/* Website preview */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.6 }}
           className="mt-6 text-center text-sm text-muted-foreground"
         >
           {t.widgetCode.configuredFor} <span className="text-foreground font-medium">{url}</span>

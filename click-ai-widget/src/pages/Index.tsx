@@ -17,10 +17,10 @@ const IndexContent = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showWidgetCode, setShowWidgetCode] = useState(false);
   const [widgetConfig, setWidgetConfig] = useState({
-    title: "AI Assistant",
-    welcomeMessage: "Hello! How can I help you today?",
-    sendButtonText: "Send",
-    inputPlaceholder: "Type your message...",
+    title: "AI Ассистент",
+    welcomeMessage: "Привет! Чем я могу помочь?",
+    sendButtonText: "Отправить",
+    inputPlaceholder: "Задайте вопрос...",
     color: "#3B82F6",
   });
 
