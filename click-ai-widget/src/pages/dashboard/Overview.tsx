@@ -47,19 +47,19 @@ export default function Overview() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard Overview</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">Dashboard Overview</h1>
 
       {/* Stats cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {cards.map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          <div key={label} className="bg-card rounded-xl p-5 shadow-sm border border-border">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-lg ${bg} flex items-center justify-center`}>
                 <Icon className={`w-5 h-5 ${color}`} />
               </div>
               <div>
-                <p className="text-sm text-gray-500">{label}</p>
-                <p className="text-xl font-bold text-gray-900">{value}</p>
+                <p className="text-sm text-muted-foreground">{label}</p>
+                <p className="text-xl font-bold text-foreground">{value}</p>
               </div>
             </div>
           </div>
@@ -67,16 +67,16 @@ export default function Overview() {
       </div>
 
       {/* Sites table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Your Sites</h2>
-          <Link to="/dashboard/sites" className="text-sm text-blue-600 hover:text-blue-700">View all →</Link>
+      <div className="bg-card rounded-xl shadow-sm border border-border">
+        <div className="p-5 border-b border-border flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-foreground">Your Sites</h2>
+          <Link to="/dashboard/sites" className="text-sm text-primary hover:text-primary/80">View all →</Link>
         </div>
         {data?.sites && data.sites.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="text-left text-xs text-gray-500 uppercase tracking-wider">
+                <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider">
                   <th className="px-5 py-3">Site</th>
                   <th className="px-5 py-3">Chat Requests</th>
                   <th className="px-5 py-3">DeepSeek</th>
@@ -85,12 +85,12 @@ export default function Overview() {
               </thead>
               <tbody>
                 {data.sites.slice(0, 5).map((site) => (
-                  <tr key={site.site_id} className="border-t border-gray-50 hover:bg-gray-50">
+                  <tr key={site.site_id} className="border-t border-border hover:bg-secondary/50">
                     <td className="px-5 py-3">
-                      <Link to={`/dashboard/sites/${site.site_id}`} className="text-blue-600 hover:underline font-medium">
+                      <Link to={`/dashboard/sites/${site.site_id}`} className="text-primary hover:underline font-medium">
                         {site.collection_name}
                       </Link>
-                      <p className="text-xs text-gray-400">{site.url}</p>
+                      <p className="text-xs text-muted-foreground">{site.url}</p>
                     </td>
                     <td className="px-5 py-3 text-sm">{site.chat_requests}</td>
                     <td className="px-5 py-3 text-sm">{site.deepseek_tokens.toLocaleString()}</td>
@@ -101,7 +101,7 @@ export default function Overview() {
             </table>
           </div>
         ) : (
-          <div className="p-8 text-center text-gray-400">
+          <div className="p-8 text-center text-muted-foreground">
             <Globe className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p>No sites yet.</p>
             <Link to="/dashboard/sites" className="text-blue-600 hover:underline text-sm">Add your first site →</Link>

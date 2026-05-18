@@ -36,10 +36,15 @@ export default function Sites() {
   async function handleAdd() {
     if (!newUrl.trim()) return;
     setAdding(true);
+    setError("");
     try {
       const site = await sitesApi.create(newUrl.trim());
-      // Start ingestion
-      await ingest.start(newUrl.trim(), site.collection_name);
+      try {
+        const resp = await ingest.start(newUrl.trim(), site.collection_name);
+        setError(`Парсинг запущен: задача ${resp.job_id || 'создана'}`);
+      } catch (ingestErr: any) {
+        setError(`Сайт добавлен, но парсинг не запустился: ${ingestErr.message}`);
+      }
       setShowAdd(false);
       setNewUrl("");
       loadSites();
@@ -51,7 +56,7 @@ export default function Sites() {
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("Delete this site? This will not remove data from Qdrant.")) return;
+    if (!confirm("Удалить этот сайт? Данные из Qdrant не будут удалены.")) return;
     try {
       await sitesApi.delete(id);
       loadSites();
@@ -61,90 +66,88 @@ export default function Sites() {
   }
 
   if (loading) {
-    return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>;
+    return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
   }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Sites</h1>
+        <h1 className="text-2xl font-bold text-foreground">Сайты</h1>
         <button
           onClick={() => setShowAdd(!showAdd)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
         >
           <Plus className="w-4 h-4" />
-          Add Site
+          Добавить сайт
         </button>
       </div>
 
-      {error && <div className="mb-4 p-4 bg-red-50 text-red-600 rounded-lg">{error}</div>}
+      {error && <div className="mb-4 p-4 bg-primary/10 text-foreground rounded-lg text-sm">{error}</div>}
 
-      {/* Add form */}
       {showAdd && (
-        <div className="mb-6 p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold mb-3">Add New Website</h2>
+        <div className="mb-6 p-6 bg-card rounded-xl shadow-sm border border-border">
+          <h2 className="text-lg font-semibold text-foreground mb-3">Добавить новый сайт</h2>
           <div className="flex gap-3">
             <input
               type="text"
               value={newUrl}
               onChange={(e) => setNewUrl(e.target.value)}
               placeholder="https://example.com"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
             />
             <button
               onClick={handleAdd}
               disabled={adding || !newUrl.trim()}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm font-medium flex items-center gap-2"
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors text-sm font-medium flex items-center gap-2"
             >
               {adding && <Loader2 className="w-4 h-4 animate-spin" />}
-              {adding ? "Adding..." : "Add & Index"}
+              {adding ? "Добавление..." : "Добавить и индексировать"}
             </button>
           </div>
         </div>
       )}
 
-      {/* Sites list */}
       {sitesList.length > 0 ? (
         <div className="space-y-4">
           {sitesList.map((site) => (
-            <div key={site.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div key={site.id} className="bg-card rounded-xl shadow-sm border border-border p-5">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
-                  <Link to={`/dashboard/sites/${site.id}`} className="text-lg font-semibold text-blue-600 hover:underline">
+                  <Link to={`/dashboard/sites/${site.id}`} className="text-lg font-semibold text-primary hover:underline">
                     {site.collection_name}
                   </Link>
-                  <p className="text-sm text-gray-400 mt-0.5 flex items-center gap-1">
+                  <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-1">
                     {site.url}
-                    <a href={site.url.startsWith("http") ? site.url : `https://${site.url}`} target="_blank" rel="noreferrer" className="text-gray-300 hover:text-gray-500">
+                    <a href={site.url.startsWith("http") ? site.url : `https://${site.url}`} target="_blank" rel="noreferrer" className="text-muted-foreground/50 hover:text-foreground">
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   </p>
                 </div>
                 <button
                   onClick={() => handleDelete(site.id)}
-                  className="p-2 text-gray-300 hover:text-red-500 transition-colors"
-                  title="Delete site"
+                  className="p-2 text-muted-foreground hover:text-red-400 transition-colors"
+                  title="Удалить сайт"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
                 <div>
-                  <p className="text-xs text-gray-400">Pages</p>
-                  <p className="text-sm font-semibold">{site.pages_indexed}</p>
+                  <p className="text-xs text-muted-foreground">Страниц</p>
+                  <p className="text-sm font-semibold text-foreground">{site.pages_indexed}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">Chat Requests</p>
-                  <p className="text-sm font-semibold">{site.chat_requests}</p>
+                  <p className="text-xs text-muted-foreground">Запросов</p>
+                  <p className="text-sm font-semibold text-foreground">{site.chat_requests}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">DeepSeek</p>
-                  <p className="text-sm font-semibold">{site.deepseek_tokens.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">DeepSeek</p>
+                  <p className="text-sm font-semibold text-foreground">{site.deepseek_tokens.toLocaleString()}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">Jina</p>
-                  <p className="text-sm font-semibold">{site.jina_tokens.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">Jina</p>
+                  <p className="text-sm font-semibold text-foreground">{site.jina_tokens.toLocaleString()}</p>
                 </div>
               </div>
             </div>
@@ -152,9 +155,9 @@ export default function Sites() {
         </div>
       ) : (
         <div className="text-center py-16">
-          <p className="text-gray-400 mb-4">No sites added yet.</p>
-          <button onClick={() => setShowAdd(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-            Add your first site
+          <p className="text-muted-foreground mb-4">Сайтов пока нет.</p>
+          <button onClick={() => setShowAdd(true)} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 text-sm">
+            Добавить первый сайт
           </button>
         </div>
       )}
