@@ -271,11 +271,12 @@ async def get_all_ingestions(limit: int = 10):
 @app.post('/chat')
 async def chat(
     req: ChatRequest,
-    user: User = Depends(get_current_user),
+    user: User | None = Depends(get_current_user_or_none),
     session: AsyncSession = Depends(get_session),
 ):
-    # Check quota
-    await check_chat_quota(user, session)
+    # Check quota (only if authenticated)
+    if user:
+        await check_chat_quota(user, session)
 
     # Check if there are any active ingest processes for this collection
     active_ingests = _get_collection_active_ingests(req.collection)
@@ -292,13 +293,15 @@ async def chat(
             'progress': progress
         }
 
-    # Find site for tracking
-    stmt = select(Site).where(
-        Site.user_id == user.id,
-        Site.collection_name == req.collection,
-    )
-    result = await session.execute(stmt)
-    site = result.scalar_one_or_none()
+    # Find site for tracking (only if authenticated)
+    site = None
+    if user:
+        stmt = select(Site).where(
+            Site.user_id == user.id,
+            Site.collection_name == req.collection,
+        )
+        result = await session.execute(stmt)
+        site = result.scalar_one_or_none()
 
     # 1) embed question
     embs = embed_texts([req.question])
@@ -308,27 +311,28 @@ async def chat(
     # 3) call LLM with context
     res = call_llm_with_context(req.question, snippets)
 
-    # Track DeepSeek usage
-    from .tracking import record_deepseek_usage
-    tokens = res.get("usage_total_tokens", 0)
-    await record_deepseek_usage(session, user.id, site.id if site else None, tokens)
-    await session.commit()
+    # Track DeepSeek usage (only if authenticated)
+    if user:
+        from .tracking import record_deepseek_usage
+        tokens = res.get("usage_total_tokens", 0)
+        await record_deepseek_usage(session, user.id, site.id if site else None, tokens)
+        await session.commit()
 
     return {
         'answer': res['answer'],
         'status': 'ready',
-        'tokens_used': tokens,
     }
 
 
 @app.post('/chat/stream')
 async def chat_stream(
     req: ChatRequest,
-    user: User = Depends(get_current_user),
+    user: User | None = Depends(get_current_user_or_none),
     session: AsyncSession = Depends(get_session),
 ):
-    # Check quota
-    await check_chat_quota(user, session)
+    # Check quota (only if authenticated)
+    if user:
+        await check_chat_quota(user, session)
 
     # Check active ingests
     active_ingests = _get_collection_active_ingests(req.collection)
@@ -338,13 +342,15 @@ async def chat_stream(
             'status': 'processing'
         }
 
-    # Find site for tracking
-    stmt = select(Site).where(
-        Site.user_id == user.id,
-        Site.collection_name == req.collection,
-    )
-    result = await session.execute(stmt)
-    site = result.scalar_one_or_none()
+    # Find site for tracking (only if authenticated)
+    site = None
+    if user:
+        stmt = select(Site).where(
+            Site.user_id == user.id,
+            Site.collection_name == req.collection,
+        )
+        result = await session.execute(stmt)
+        site = result.scalar_one_or_none()
 
     # 1) embed question
     embs = embed_texts([req.question])

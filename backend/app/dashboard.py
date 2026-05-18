@@ -99,11 +99,11 @@ async def create_site(
         collection_name=collection_name,
         url=site_data.url,
         widget_config={
-            "title": "AI Assistant",
-            "welcomeMessage": "Hello! How can I help you today?",
+            "title": "AI Ассистент",
+            "welcomeMessage": "Привет! Чем я могу помочь?",
             "color": "#3B82F6",
-            "sendText": "Send",
-            "placeholder": "Type your message...",
+            "sendText": "Отправить",
+            "placeholder": "Задайте вопрос...",
         },
     )
     session.add(site)

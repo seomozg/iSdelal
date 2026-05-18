@@ -31,23 +31,23 @@ export default function Overview() {
   }, []);
 
   if (loading) {
-    return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>;
+    return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
   }
 
   if (error) {
-    return <div className="p-4 bg-red-50 text-red-600 rounded-lg">{error}</div>;
+    return <div className="p-4 bg-red-500/10 text-red-400 rounded-lg">{error}</div>;
   }
 
   const cards = [
-    { label: "Pages Indexed", value: data?.total_pages_indexed ?? 0, icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
-    { label: "Chat Requests", value: data?.total_chat_requests ?? 0, icon: MessageSquare, color: "text-green-600", bg: "bg-green-50" },
-    { label: "DeepSeek Tokens", value: (data?.total_deepseek_tokens ?? 0).toLocaleString(), icon: BarChart3, color: "text-purple-600", bg: "bg-purple-50" },
-    { label: "Jina Tokens", value: (data?.total_jina_tokens ?? 0).toLocaleString(), icon: Coins, color: "text-orange-600", bg: "bg-orange-50" },
+    { label: "Страниц в индексе", value: data?.total_pages_indexed ?? 0, icon: FileText, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { label: "Запросов в чат", value: data?.total_chat_requests ?? 0, icon: MessageSquare, color: "text-green-500", bg: "bg-green-500/10" },
+    { label: "DeepSeek токенов", value: (data?.total_deepseek_tokens ?? 0).toLocaleString(), icon: BarChart3, color: "text-purple-500", bg: "bg-purple-500/10" },
+    { label: "Jina токенов", value: (data?.total_jina_tokens ?? 0).toLocaleString(), icon: Coins, color: "text-orange-500", bg: "bg-orange-500/10" },
   ];
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-foreground mb-6">Dashboard Overview</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">Обзор</h1>
 
       {/* Stats cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -69,16 +69,16 @@ export default function Overview() {
       {/* Sites table */}
       <div className="bg-card rounded-xl shadow-sm border border-border">
         <div className="p-5 border-b border-border flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Your Sites</h2>
-          <Link to="/dashboard/sites" className="text-sm text-primary hover:text-primary/80">View all →</Link>
+          <h2 className="text-lg font-semibold text-foreground">Ваши сайты</h2>
+          <Link to="/dashboard/sites" className="text-sm text-primary hover:text-primary/80">Все сайты →</Link>
         </div>
         {data?.sites && data.sites.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider">
-                  <th className="px-5 py-3">Site</th>
-                  <th className="px-5 py-3">Chat Requests</th>
+                  <th className="px-5 py-3">Сайт</th>
+                  <th className="px-5 py-3">Запросов</th>
                   <th className="px-5 py-3">DeepSeek</th>
                   <th className="px-5 py-3">Jina</th>
                 </tr>
@@ -92,9 +92,9 @@ export default function Overview() {
                       </Link>
                       <p className="text-xs text-muted-foreground">{site.url}</p>
                     </td>
-                    <td className="px-5 py-3 text-sm">{site.chat_requests}</td>
-                    <td className="px-5 py-3 text-sm">{site.deepseek_tokens.toLocaleString()}</td>
-                    <td className="px-5 py-3 text-sm">{site.jina_tokens.toLocaleString()}</td>
+                    <td className="px-5 py-3 text-sm text-foreground">{site.chat_requests}</td>
+                    <td className="px-5 py-3 text-sm text-foreground">{site.deepseek_tokens.toLocaleString()}</td>
+                    <td className="px-5 py-3 text-sm text-foreground">{site.jina_tokens.toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
@@ -103,8 +103,8 @@ export default function Overview() {
         ) : (
           <div className="p-8 text-center text-muted-foreground">
             <Globe className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>No sites yet.</p>
-            <Link to="/dashboard/sites" className="text-blue-600 hover:underline text-sm">Add your first site →</Link>
+            <p>Сайтов пока нет.</p>
+            <Link to="/dashboard/sites" className="text-primary hover:underline text-sm">Добавить первый сайт →</Link>
           </div>
         )}
       </div>

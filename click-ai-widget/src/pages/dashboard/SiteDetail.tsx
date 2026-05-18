@@ -182,15 +182,6 @@ window.AIWidgetConfig = {
             </div>
           </div>
 
-          {/* API endpoints */}
-          <div className="bg-card rounded-xl shadow-sm border border-border p-5">
-            <h3 className="text-sm font-semibold text-foreground mb-2">API Endpoints</h3>
-            <div className="space-y-1 text-xs text-muted-foreground font-mono">
-              <p>POST {apiBase}/chat</p>
-              <p>POST {apiBase}/chat/stream</p>
-              <p>GET {apiBase}/collections/{site.collection_name}</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>
