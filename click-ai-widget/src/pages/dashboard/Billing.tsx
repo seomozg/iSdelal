@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { tariffs, payments as paymentsApi } from "@/lib/api";
-import { Check, ExternalLink } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 
 interface Tariff {
   id: number;
@@ -25,6 +25,7 @@ export default function Billing() {
   const [subscription, setSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [payingTariff, setPayingTariff] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -41,39 +42,54 @@ export default function Billing() {
       .finally(() => setLoading(false));
   }, []);
 
-  const ADMIN_LINK = "https://t.me/seomozg"; // Replace with actual admin contact
+  const ADMIN_LINK = "mailto:umklaidet@yandex.ru";
 
   function formatTariffName(name: string): string {
     const map: Record<string, string> = {
-      free: "Free",
-      tariff_100: "100 Pages",
-      tariff_500: "500 Pages",
-      tariff_1000: "1000 Pages",
+      free: "Бесплатный",
+      tariff_100: "100 Страниц",
+      tariff_500: "500 Страниц",
+      tariff_1000: "1000 Страниц",
     };
     return map[name] || name;
   }
 
   function formatPrice(price: number): string {
-    if (price === 0) return "Free";
-    return `${price.toLocaleString("ru-RU")} ₽/mo`;
+    if (price === 0) return "0 ₽";
+    return `${price.toLocaleString("ru-RU")} ₽/мес`;
+  }
+
+  async function handlePay(tariffName: string) {
+    setPayingTariff(tariffName);
+    setError("");
+    try {
+      const result = await paymentsApi.yookassa(tariffName);
+      if (result.confirmation_url) {
+        window.location.href = result.confirmation_url;
+      }
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setPayingTariff(null);
+    }
   }
 
   if (loading) {
-    return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>;
+    return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
   }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Billing & Plans</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">Тарифы и оплата</h1>
 
-      {error && <div className="mb-4 p-4 bg-red-50 text-red-600 rounded-lg">{error}</div>}
+      {error && <div className="mb-4 p-4 bg-red-500/10 text-red-400 rounded-lg text-sm">{error}</div>}
 
       {/* Current plan */}
       {subscription && (
-        <div className="mb-6 p-5 bg-blue-50 rounded-xl border border-blue-100">
-          <p className="text-sm text-blue-600 font-medium">Current Plan</p>
-          <p className="text-xl font-bold text-blue-900 mt-1">{formatTariffName(subscription.tariff?.name)}</p>
-          <p className="text-sm text-blue-600 mt-1">{subscription.tariff?.description}</p>
+        <div className="mb-6 p-5 bg-primary/10 rounded-xl border border-primary/20">
+          <p className="text-sm text-primary font-medium">Текущий тариф</p>
+          <p className="text-xl font-bold text-foreground mt-1">{formatTariffName(subscription.tariff?.name)}</p>
+          <p className="text-sm text-muted-foreground mt-1">{subscription.tariff?.description}</p>
         </div>
       )}
 
@@ -84,42 +100,50 @@ export default function Billing() {
           return (
             <div
               key={tariff.id}
-              className={`bg-white rounded-xl shadow-sm border p-6 relative ${isCurrent ? "ring-2 ring-blue-500" : "border-gray-100"}`}
+              className={`relative bg-card rounded-xl shadow-sm border p-6 ${isCurrent ? "ring-2 ring-primary border-primary" : "border-border"}`}
             >
               {isCurrent && (
-                <span className="absolute top-3 right-3 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  CURRENT
+                <span className="absolute top-3 right-3 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  ТЕКУЩИЙ
                 </span>
               )}
-              <h3 className="text-lg font-bold text-gray-900">{formatTariffName(tariff.name)}</h3>
-              <p className="text-2xl font-extrabold text-gray-900 mt-2">{formatPrice(tariff.price_rub_month)}</p>
-              <p className="text-xs text-gray-400 mt-1">{tariff.description}</p>
-              <ul className="mt-4 space-y-2 text-sm text-gray-600">
+              <h3 className="text-lg font-bold text-foreground">{formatTariffName(tariff.name)}</h3>
+              <p className="text-2xl font-extrabold text-foreground mt-2">{formatPrice(tariff.price_rub_month)}</p>
+              <p className="text-xs text-muted-foreground mt-1">{tariff.description}</p>
+              <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                  {tariff.pages_limit} pages
+                  {tariff.pages_limit} страниц
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                  {tariff.requests_limit === -1 ? "Unlimited requests" : `${tariff.requests_limit} requests`}
+                  {tariff.requests_limit === -1 ? "Безлимит запросов" : `${tariff.requests_limit} запросов`}
                 </li>
               </ul>
               {tariff.price_rub_month > 0 && (
                 <button
-                  disabled={isCurrent}
-                  onClick={() => tariff.price_rub_month >= 10000
-                    ? window.open(ADMIN_LINK, "_blank")
-                    : null
-                  }
-                  className={`w-full mt-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  disabled={isCurrent || payingTariff === tariff.name}
+                  onClick={() => {
+                    if (tariff.price_rub_month >= 10000) {
+                      window.open(ADMIN_LINK, "_blank");
+                    } else {
+                      handlePay(tariff.name);
+                    }
+                  }}
+                  className={`w-full mt-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${
                     tariff.price_rub_month >= 10000
-                      ? "bg-gray-900 text-white hover:bg-gray-800"
-                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      ? "bg-secondary text-foreground hover:bg-secondary/80"
+                      : isCurrent
+                        ? "bg-muted text-muted-foreground cursor-not-allowed"
+                        : "bg-primary text-primary-foreground hover:bg-primary/90"
                   }`}
                 >
+                  {payingTariff === tariff.name && <Loader2 className="w-4 h-4 animate-spin" />}
                   {tariff.price_rub_month >= 10000
-                    ? "Contact Admin"
-                    : "Coming Soon"}
+                    ? "Написать админу"
+                    : isCurrent
+                      ? "Активен"
+                      : "Оплатить"}
                 </button>
               )}
             </div>
@@ -128,34 +152,34 @@ export default function Billing() {
       </div>
 
       {/* Payment history */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-        <div className="p-5 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900">Payment History</h2>
+      <div className="bg-card rounded-xl shadow-sm border border-border">
+        <div className="p-5 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground">История платежей</h2>
         </div>
         {paymentsList.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="text-left text-xs text-gray-500 uppercase tracking-wider">
-                  <th className="px-5 py-3">Date</th>
-                  <th className="px-5 py-3">Tariff</th>
-                  <th className="px-5 py-3">Amount</th>
-                  <th className="px-5 py-3">Status</th>
+                <tr className="text-left text-xs text-muted-foreground uppercase tracking-wider">
+                  <th className="px-5 py-3">Дата</th>
+                  <th className="px-5 py-3">Тариф</th>
+                  <th className="px-5 py-3">Сумма</th>
+                  <th className="px-5 py-3">Статус</th>
                 </tr>
               </thead>
               <tbody>
                 {paymentsList.map((p) => (
-                  <tr key={p.id} className="border-t border-gray-50">
-                    <td className="px-5 py-3 text-sm text-gray-600">{new Date(p.created_at).toLocaleDateString("ru-RU")}</td>
-                    <td className="px-5 py-3 text-sm">{p.tariff_name || "-"}</td>
-                    <td className="px-5 py-3 text-sm font-medium">{p.amount.toLocaleString("ru-RU")} ₽</td>
+                  <tr key={p.id} className="border-t border-border">
+                    <td className="px-5 py-3 text-sm text-muted-foreground">{new Date(p.created_at).toLocaleDateString("ru-RU")}</td>
+                    <td className="px-5 py-3 text-sm text-foreground">{p.tariff_name || "-"}</td>
+                    <td className="px-5 py-3 text-sm font-medium text-foreground">{p.amount.toLocaleString("ru-RU")} ₽</td>
                     <td className="px-5 py-3">
                       <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                        p.status === "succeeded" ? "bg-green-100 text-green-700" :
-                        p.status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                        "bg-red-100 text-red-700"
+                        p.status === "succeeded" ? "bg-green-500/10 text-green-400" :
+                        p.status === "pending" ? "bg-yellow-500/10 text-yellow-400" :
+                        "bg-red-500/10 text-red-400"
                       }`}>
-                        {p.status}
+                        {p.status === "succeeded" ? "Оплачен" : p.status === "pending" ? "Ожидает" : p.status}
                       </span>
                     </td>
                   </tr>
@@ -164,7 +188,7 @@ export default function Billing() {
             </table>
           </div>
         ) : (
-          <div className="p-8 text-center text-gray-400">No payments yet</div>
+          <div className="p-8 text-center text-muted-foreground">Платежей пока нет</div>
         )}
       </div>
     </div>

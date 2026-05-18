@@ -12,20 +12,20 @@ export default function DashboardLayout() {
   }
 
   const navItems = [
-    { to: "/dashboard", icon: LayoutDashboard, label: "Overview", end: true },
-    { to: "/dashboard/sites", icon: Globe, label: "Sites" },
-    { to: "/dashboard/billing", icon: CreditCard, label: "Billing" },
-    { to: "/dashboard/profile", icon: User, label: "Profile" },
+    { to: "/dashboard", icon: LayoutDashboard, label: "Обзор", end: true },
+    { to: "/dashboard/sites", icon: Globe, label: "Сайты" },
+    { to: "/dashboard/billing", icon: CreditCard, label: "Тарифы" },
+    { to: "/dashboard/profile", icon: User, label: "Профиль" },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-6 border-b border-gray-200">
-          <NavLink to="/" className="flex items-center gap-2 text-xl font-bold text-gray-900">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white text-sm font-bold">iS</div>
-            iSdelal
+      <aside className="w-64 bg-card border-r border-border flex flex-col">
+        <div className="p-6 border-b border-border">
+          <NavLink to="/" className="flex items-center gap-2 text-xl font-bold text-foreground">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground text-sm font-bold">SA</div>
+            Site-Agent
           </NavLink>
         </div>
         <nav className="flex-1 p-4 space-y-1">
@@ -37,8 +37,8 @@ export default function DashboardLayout() {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 }`
               }
             >
@@ -47,26 +47,26 @@ export default function DashboardLayout() {
             </NavLink>
           ))}
         </nav>
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-border">
           <div className="flex items-center gap-3 mb-3">
             {user?.avatar_url ? (
               <img src={user.avatar_url} alt="" className="w-8 h-8 rounded-full" />
             ) : (
-              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 text-sm font-medium">
+              <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-muted-foreground text-sm font-medium">
                 {user?.name?.[0] || "U"}
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">{user?.name || "User"}</p>
-              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+              <p className="text-sm font-medium text-foreground truncate">{user?.name || "Пользователь"}</p>
+              <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-red-400 hover:bg-red-50/10 rounded-lg transition-colors"
           >
             <LogOut className="w-4 h-4" />
-            Sign Out
+            Выйти
           </button>
         </div>
       </aside>

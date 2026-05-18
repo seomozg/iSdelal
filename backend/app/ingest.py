@@ -105,7 +105,26 @@ def _create_job(job_id: str, mode: str, target: str, collection: str = None) -> 
 
 
 def embed_texts(texts):
-    """Embed texts using Jina AI API. Returns (embeddings, total_tokens)."""
+    """Embed texts using Jina AI API. Returns (embeddings, total_tokens).
+    Set MOCK_EMBEDDINGS=true to use deterministic mock embeddings (saves API tokens during testing).
+    """
+    import numpy as np
+
+    # --- Mock mode: deterministic embeddings from text hash (no API call) ---
+    if os.getenv("MOCK_EMBEDDINGS", "false").lower() == "true":
+        print("🤖 MOCK_EMBEDDINGS=true — using deterministic mock embeddings (no Jina API calls)")
+        VECTOR_SIZE = 1536
+        mock_vectors = []
+        for t in texts:
+            # Deterministic pseudo-random vector from text hash
+            seed = hash(t) % (2**31)
+            rng = np.random.RandomState(seed)
+            vec = rng.randn(VECTOR_SIZE).astype(float).tolist()
+            mock_vectors.append(vec)
+        print(f"🎉 Mock-embedded {len(texts)} texts, vector size={VECTOR_SIZE}, total tokens=0")
+        return mock_vectors, 0
+
+    # --- Real Jina API mode ---
     if not JINA_API_KEY:
         raise Exception("JINA_API_KEY not set in environment variables")
 

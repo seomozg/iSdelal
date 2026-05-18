@@ -78,7 +78,7 @@ const tariffs: TariffCard[] = [
   },
 ];
 
-const ADMIN_LINK = "https://t.me/seomozg"; // Replace with actual admin contact
+const ADMIN_LINK = "mailto:umklaidet@yandex.ru";
 
 const Pricing = () => {
   const { language } = useLanguage();

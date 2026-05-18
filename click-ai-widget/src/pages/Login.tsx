@@ -23,8 +23,8 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="max-w-md w-full p-8 bg-card rounded-2xl shadow-lg border border-border text-center">
-        <h1 className="text-2xl font-bold mb-2 text-foreground">Welcome to iSdelal</h1>
-        <p className="text-muted-foreground mb-8">Sign in to manage your AI widgets</p>
+        <h1 className="text-2xl font-bold mb-2 text-foreground">Добро пожаловать в Site-Agent</h1>
+        <p className="text-muted-foreground mb-8">Войдите, чтобы управлять вашими AI-виджетами</p>
 
         <button
           onClick={login}
@@ -36,7 +36,7 @@ export default function Login() {
             <path d="M4.33 11.89c-.2-.6-.32-1.24-.32-1.89s.11-1.29.32-1.89L1.1 5.95C.4 7.35 0 8.88 0 10.5s.4 3.15 1.1 4.55l3.23-2.66z" fill="#FBBC05"/>
             <path d="M10 3.83c1.47 0 2.78.51 3.82 1.5l2.86-2.86C14.96.89 12.7 0 10 0 6.13 0 2.78 2.44 1.1 5.95l3.23 2.66C5.13 5.61 7.36 3.83 10 3.83z" fill="#EA4335"/>
           </svg>
-          Sign in with Google
+          Войти через Google
         </button>
       </div>
     </div>

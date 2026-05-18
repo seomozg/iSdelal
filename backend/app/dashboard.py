@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from datetime import datetime
@@ -275,3 +276,99 @@ async def list_payments(
     result = await session.execute(stmt)
     payments = result.scalars().all()
     return payments
+
+
+class YooKassaRequest(BaseModel):
+    tariff_name: str  # free, tariff_100, tariff_500, tariff_1000
+
+@router.post("/payments/yookassa")
+async def create_yookassa_payment(
+    req: YooKassaRequest,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """Create a YooKassa payment for tariff upgrade."""
+    import uuid
+    import requests as http_requests
+    import os
+
+    YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID", "")
+    YOOKASSA_SECRET_KEY = os.getenv("YOOKASSA_SECRET_KEY", "live_j4-TTfmrr3VMrbDRZYUfLc2eXzRXUVm8vsubW151YBM")
+
+    if not YOOKASSA_SHOP_ID or not YOOKASSA_SECRET_KEY:
+        raise HTTPException(status_code=500, detail="YooKassa not configured")
+
+    # Price mapping
+    prices = {
+        "tariff_100": {"amount": 1000.00, "description": "Site-Agent: 100 страниц"},
+        "tariff_500": {"amount": 5000.00, "description": "Site-Agent: 500 страниц"},
+        "tariff_1000": {"amount": 10000.00, "description": "Site-Agent: 1000 страниц"},
+    }
+
+    if req.tariff_name not in prices:
+        raise HTTPException(status_code=400, detail=f"Unknown tariff: {req.tariff_name}")
+
+    price_info = prices[req.tariff_name]
+    idempotency_key = str(uuid.uuid4())
+
+    yookassa_body = {
+        "amount": {
+            "value": f"{price_info['amount']:.2f}",
+            "currency": "RUB"
+        },
+        "capture": True,
+        "confirmation": {
+            "type": "redirect",
+            "return_url": os.getenv("SITE_URL", "https://site-agent.online") + "/dashboard/billing"
+        },
+        "description": price_info["description"],
+        "metadata": {
+            "user_id": user.id,
+            "tariff_name": req.tariff_name
+        }
+    }
+
+    try:
+        resp = http_requests.post(
+            "https://api.yookassa.ru/v3/payments",
+            headers={
+                "Content-Type": "application/json",
+                "Idempotence-Key": idempotency_key,
+            },
+            auth=(YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY),
+            json=yookassa_body,
+            timeout=15,
+        )
+
+        if resp.status_code not in (200, 201):
+            print(f"YooKassa error: {resp.status_code} {resp.text}")
+            raise HTTPException(status_code=502, detail="Payment service error")
+
+        data = resp.json()
+
+        # Record payment in DB
+        payment = Payment(
+            user_id=user.id,
+            amount=price_info["amount"],
+            tariff_name=req.tariff_name,
+            status="pending",
+            yookassa_id=data.get("id"),
+        )
+        session.add(payment)
+        await session.flush()
+        await session.commit()
+
+        # Return confirmation URL
+        confirmation_url = data.get("confirmation", {}).get("confirmation_url", "")
+        return {
+            "payment_id": payment.id,
+            "yookassa_id": data.get("id"),
+            "confirmation_url": confirmation_url,
+            "amount": price_info["amount"],
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"YooKassa request failed: {e}")
+        raise HTTPException(status_code=502, detail=str(e))
