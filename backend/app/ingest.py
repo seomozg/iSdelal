@@ -404,13 +404,25 @@ async def crawl_site(start_url: str, max_pages: int = CRAWL_MAX_PAGES, timeout: 
                 })
             continue
 
+    # 2) If static crawl got pages, check if they have meaningful text
+    #    (SPA pages may have only a skeleton with no real content)
     if pages:
-        return pages
+        total_words = 0
+        for _, html in pages:
+            text = html_to_text(html)
+            total_words += len(text.split())
+        avg_words = total_words / len(pages) if pages else 0
+        if avg_words >= 10:
+            return pages  # pages have real text, use them
+        else:
+            print(f"Static crawl returned {len(pages)} page(s) with only ~{avg_words:.0f} words/page — trying Playwright for JS-rendered content...")
 
-    # 2) Fallback to Playwright runtime crawl if static crawl failed to get anything
+    # 3) Fallback to Playwright runtime crawl if static crawl found nothing or only empty pages
     if USE_PLAYWRIGHT:
-        print("Static crawl found no pages, trying Playwright runtime crawler...")
-        pages = await runtime_crawl(start_url, max_pages=PLAYWRIGHT_MAX_PAGES, timeout=timeout, job_id=job_id)
+        print("Starting Playwright runtime crawler...")
+        pw_pages = await runtime_crawl(start_url, max_pages=PLAYWRIGHT_MAX_PAGES, timeout=timeout, job_id=job_id)
+        if pw_pages:
+            return pw_pages
 
     return pages
 
