@@ -144,13 +144,13 @@ class ChatRequest(BaseModel):
 @app.post('/ingest')
 async def ingest(
     req: IngestRequest,
-    background_tasks: BackgroundTasks = None,
-    user: User = Depends(get_current_user),
+    user: User | None = Depends(get_current_user_or_none),
     session: AsyncSession = Depends(get_session),
 ):
     try:
-        # Check quota
-        await check_ingest_quota(user, session, new_pages=1)
+        # Check quota (only if authenticated)
+        if user:
+            await check_ingest_quota(user, session, new_pages=1)
 
         # Create a job ID for this ingest task
         job_id = str(uuid.uuid4())
@@ -168,23 +168,24 @@ async def ingest(
         # Create the job record with collection
         _create_job(job_id, mode, target, req.collection)
 
-        # Create or update Site record for tracking
-        stmt = select(Site).where(
-            Site.user_id == user.id,
-            Site.collection_name == req.collection,
-        )
-        result = await session.execute(stmt)
-        site = result.scalar_one_or_none()
-        if not site:
-            site = Site(
-                user_id=user.id,
-                collection_name=req.collection,
-                url=req.url or (req.urls[0] if req.urls else ""),
+        # Create or update Site record for tracking (only if authenticated)
+        if user:
+            stmt = select(Site).where(
+                Site.user_id == user.id,
+                Site.collection_name == req.collection,
             )
-            session.add(site)
-            await session.flush()
+            result = await session.execute(stmt)
+            site = result.scalar_one_or_none()
+            if not site:
+                site = Site(
+                    user_id=user.id,
+                    collection_name=req.collection,
+                    url=req.url or (req.urls[0] if req.urls else ""),
+                )
+                session.add(site)
+                await session.flush()
 
-        # Submit background task via asyncio.create_task (BackgroundTasks not injectable with Depends)
+        # Submit background task via asyncio.create_task
         import asyncio as _asyncio
         _asyncio.create_task(
             ingest_background(
