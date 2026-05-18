@@ -18,7 +18,7 @@ JWT_SECRET = os.getenv("JWT_SECRET", "isdelal-secret-key-change-in-production")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 168  # 7 days
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 def create_jwt(user_id: int, email: str) -> str:
@@ -113,10 +113,15 @@ async def get_or_create_user(session: AsyncSession, google_data: dict) -> tuple[
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
     session: AsyncSession = Depends(get_session),
 ) -> User:
     """FastAPI dependency: extract and validate the current user from JWT."""
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
     payload = decode_jwt(credentials.credentials)
     user_id = int(payload.get("sub"))
 
@@ -134,11 +139,17 @@ async def get_current_user(
 
 
 async def get_current_user_or_none(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
     session: AsyncSession = Depends(get_session),
 ) -> User | None:
     """Like get_current_user but returns None instead of 401 (for optional auth)."""
+    if not credentials or not credentials.credentials:
+        return None
     try:
-        return await get_current_user(credentials, session)
-    except HTTPException:
+        payload = decode_jwt(credentials.credentials)
+        user_id = int(payload.get("sub"))
+        stmt = select(User).where(User.id == user_id)
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none()
+    except Exception:
         return None
