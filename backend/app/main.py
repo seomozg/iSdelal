@@ -184,15 +184,16 @@ async def ingest(
             session.add(site)
             await session.flush()
 
-        # Submit background task
-        if background_tasks:
-            background_tasks.add_task(
-                ingest_background,
+        # Submit background task via asyncio.create_task (BackgroundTasks not injectable with Depends)
+        import asyncio as _asyncio
+        _asyncio.create_task(
+            ingest_background(
                 job_id,
                 url=req.url,
                 urls=req.urls,
                 collection_name=req.collection
             )
+        )
 
         await session.commit()
 
