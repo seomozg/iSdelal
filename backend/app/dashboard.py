@@ -8,6 +8,7 @@ from typing import List
 from .database import get_session
 from .models import User, Site, UsageStats, Subscription, Tariff, Payment
 from .auth import get_current_user
+from .qdrant_client import get_qdrant_client
 from .schemas import (
     SiteCreate, SiteResponse, WidgetConfigUpdate,
     UserStatsResponse, TariffResponse, SubscriptionResponse,
@@ -39,13 +40,25 @@ async def list_sites(
     response = []
     for site in sites:
         usage = await get_site_usage(session, site.id)
+        # Get real pages count from Qdrant
+        real_pages = site.pages_indexed
+        try:
+            qdrant = get_qdrant_client()
+            coll = qdrant.get_collection(site.collection_name)
+            real_pages = coll.points_count or 0
+            # Update DB cache
+            if real_pages != site.pages_indexed:
+                site.pages_indexed = real_pages
+                await session.flush()
+        except Exception:
+            pass
         response.append(SiteResponse(
             id=site.id,
             user_id=site.user_id,
             collection_name=site.collection_name,
             url=site.url,
             widget_config=site.widget_config or {},
-            pages_indexed=site.pages_indexed,
+            pages_indexed=real_pages,
             created_at=site.created_at,
             deepseek_tokens=usage["deepseek_tokens"],
             jina_tokens=usage["jina_tokens"],
@@ -121,13 +134,24 @@ async def get_site(
         raise HTTPException(status_code=404, detail="Site not found")
 
     usage = await get_site_usage(session, site.id)
+    # Get real pages count from Qdrant
+    real_pages = site.pages_indexed
+    try:
+        qdrant = get_qdrant_client()
+        coll = qdrant.get_collection(site.collection_name)
+        real_pages = coll.points_count or 0
+        if real_pages != site.pages_indexed:
+            site.pages_indexed = real_pages
+            await session.flush()
+    except Exception:
+        pass
     return SiteResponse(
         id=site.id,
         user_id=site.user_id,
         collection_name=site.collection_name,
         url=site.url,
         widget_config=site.widget_config or {},
-        pages_indexed=site.pages_indexed,
+        pages_indexed=real_pages,
         created_at=site.created_at,
         deepseek_tokens=usage["deepseek_tokens"],
         jina_tokens=usage["jina_tokens"],
