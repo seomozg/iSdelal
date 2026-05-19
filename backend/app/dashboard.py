@@ -310,6 +310,39 @@ async def list_payments(
     )
     result = await session.execute(stmt)
     payments = result.scalars().all()
+
+    # Auto-check pending payments against YooKassa
+    import requests as http_requests
+    import os as _os
+    shop_id = _os.getenv("YOOKASSA_SHOP_ID", "")
+    secret = _os.getenv("YOOKASSA_SECRET_KEY", "")
+    if shop_id and secret:
+        for p in payments:
+            if p.status == "pending" and p.yookassa_id:
+                try:
+                    resp = http_requests.get(
+                        f"https://api.yookassa.ru/v3/payments/{p.yookassa_id}",
+                        auth=(shop_id, secret),
+                        timeout=5,
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        if data.get("status") == "succeeded":
+                            p.status = "succeeded"
+                            # Upgrade subscription
+                            tariff_name = data.get("metadata", {}).get("tariff_name", p.tariff_name)
+                            t = (await session.execute(select(Tariff).where(Tariff.name == tariff_name))).scalar_one_or_none()
+                            if t:
+                                sub = (await session.execute(select(Subscription).where(Subscription.user_id == p.user_id))).scalar_one_or_none()
+                                if sub:
+                                    sub.tariff_id = t.id
+                                    sub.active = True
+                                else:
+                                    session.add(Subscription(user_id=p.user_id, tariff_id=t.id, active=True))
+                            await session.flush()
+                except Exception:
+                    pass
+
     return payments
 
 
