@@ -226,9 +226,20 @@ async def get_user_stats(
     result = await session.execute(stmt)
     sites = result.scalars().all()
 
+    # Sum real points from Qdrant across all user sites
+    total_qdrant_points = 0
     sites_list = []
     for site in sites:
         site_usage = await get_site_usage(session, site.id)
+        # Get real points count from Qdrant
+        real_points = 0
+        try:
+            qdrant = get_qdrant_client()
+            coll = qdrant.get_collection(site.collection_name)
+            real_points = coll.points_count or 0
+        except Exception:
+            pass
+        total_qdrant_points += real_points
         sites_list.append({
             "site_id": site.id,
             "collection_name": site.collection_name,
@@ -242,7 +253,7 @@ async def get_user_stats(
         total_deepseek_tokens=usage["deepseek_tokens"],
         total_jina_tokens=usage["jina_tokens"],
         total_chat_requests=usage["chat_requests"],
-        total_pages_indexed=usage["ingest_pages"],
+        total_pages_indexed=total_qdrant_points,
         sites=sites_list,
     )
 

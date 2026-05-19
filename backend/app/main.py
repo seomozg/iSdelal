@@ -294,11 +294,18 @@ async def chat(
             'progress': progress
         }
 
-    # Find site for tracking (only if authenticated)
+    # Find site for tracking
     site = None
     if user:
         stmt = select(Site).where(
             Site.user_id == user.id,
+            Site.collection_name == req.collection,
+        )
+        result = await session.execute(stmt)
+        site = result.scalar_one_or_none()
+    if not site:
+        # Fallback: find any site with this collection (for anonymous tracking)
+        stmt = select(Site).where(
             Site.collection_name == req.collection,
         )
         result = await session.execute(stmt)
@@ -312,11 +319,11 @@ async def chat(
     # 3) call LLM with context
     res = call_llm_with_context(req.question, snippets)
 
-    # Track DeepSeek usage (only if authenticated)
-    if user:
+    # Track DeepSeek usage (always, if we found a site)
+    if site:
         from .tracking import record_deepseek_usage
         tokens = res.get("usage_total_tokens", 0)
-        await record_deepseek_usage(session, user.id, site.id if site else None, tokens)
+        await record_deepseek_usage(session, site.user_id, site.id, tokens)
         await session.commit()
 
     return {
@@ -343,11 +350,17 @@ async def chat_stream(
             'status': 'processing'
         }
 
-    # Find site for tracking (only if authenticated)
+    # Find site for tracking
     site = None
     if user:
         stmt = select(Site).where(
             Site.user_id == user.id,
+            Site.collection_name == req.collection,
+        )
+        result = await session.execute(stmt)
+        site = result.scalar_one_or_none()
+    if not site:
+        stmt = select(Site).where(
             Site.collection_name == req.collection,
         )
         result = await session.execute(stmt)
