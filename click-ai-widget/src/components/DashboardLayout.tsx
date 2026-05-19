@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutDashboard, Globe, CreditCard, User, LogOut, Home } from "lucide-react";
+import { LayoutDashboard, Globe, CreditCard, User, LogOut, Home, Mail } from "lucide-react";
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
@@ -61,6 +61,13 @@ export default function DashboardLayout() {
               <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
             </div>
           </div>
+          <a
+            href="mailto:umklaidet@yandex.ru"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors mb-1"
+          >
+            <Mail className="w-4 h-4" />
+            Связаться с поддержкой
+          </a>
           <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-red-400 hover:bg-red-50/10 rounded-lg transition-colors"

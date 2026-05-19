@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -147,6 +147,22 @@ const Hero = ({ onSubmit, isLoading }: HeroProps) => {
             <div className="w-2 h-2 rounded-full bg-green-500" />
             {t.hero.trust3}
           </span>
+        </motion.div>
+
+        {/* Login button */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+          className="mt-8 text-center"
+        >
+          <a
+            href="/login"
+            className="inline-flex items-center gap-2 px-5 py-2.5 border border-border rounded-lg text-sm text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-primary/5 transition-all"
+          >
+            <LogIn className="w-4 h-4" />
+            Войти в кабинет
+          </a>
         </motion.div>
       </div>
     </section>
