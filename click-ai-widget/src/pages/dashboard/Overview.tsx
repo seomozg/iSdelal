@@ -39,7 +39,7 @@ export default function Overview() {
   }
 
   const cards = [
-    { label: "Страниц в индексе", value: data?.total_pages_indexed ?? 0, icon: FileText, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { label: "Чанков в индексе", value: data?.total_pages_indexed ?? 0, icon: FileText, color: "text-blue-500", bg: "bg-blue-500/10" },
     { label: "Запросов в чат", value: data?.total_chat_requests ?? 0, icon: MessageSquare, color: "text-green-500", bg: "bg-green-500/10" },
     { label: "DeepSeek токенов", value: (data?.total_deepseek_tokens ?? 0).toLocaleString(), icon: BarChart3, color: "text-purple-500", bg: "bg-purple-500/10" },
     { label: "Jina токенов", value: (data?.total_jina_tokens ?? 0).toLocaleString(), icon: Coins, color: "text-orange-500", bg: "bg-orange-500/10" },

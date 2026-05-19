@@ -117,10 +117,10 @@ window.AIWidgetConfig = {
             <h2 className="text-lg font-semibold text-foreground mb-4">Статистика</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
-                { label: "Qdrant Points", value: qdrantPoints },
-                { label: "Chat Requests", value: site.chat_requests },
-                { label: "DeepSeek Tokens", value: site.deepseek_tokens.toLocaleString() },
-                { label: "Jina Tokens", value: site.jina_tokens.toLocaleString() },
+                { label: "Чанков в Qdrant", value: qdrantPoints },
+                { label: "Запросов в чат", value: site.chat_requests },
+                { label: "DeepSeek токенов", value: site.deepseek_tokens.toLocaleString() },
+                { label: "Jina токенов", value: site.jina_tokens.toLocaleString() },
               ].map(({ label, value }) => (
                 <div key={label}>
                   <p className="text-xs text-muted-foreground">{label}</p>
