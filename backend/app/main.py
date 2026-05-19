@@ -312,18 +312,21 @@ async def chat(
         site = result.scalar_one_or_none()
 
     # 1) embed question
-    embs = embed_texts([req.question])
+    embs_result = embed_texts([req.question])
+    embs, jina_tokens = embs_result if isinstance(embs_result, tuple) else (embs_result, 0)
     q_emb = embs[0]
     # 2) query qdrant
     snippets = query_and_build_context(q_emb, collection_name=req.collection)
     # 3) call LLM with context
     res = call_llm_with_context(req.question, snippets)
 
-    # Track DeepSeek usage (always, if we found a site)
+    # Track usage (always, if we found a site)
     if site:
-        from .tracking import record_deepseek_usage
-        tokens = res.get("usage_total_tokens", 0)
-        await record_deepseek_usage(session, site.user_id, site.id, tokens)
+        from .tracking import record_deepseek_usage, record_jina_usage
+        deepseek_tokens = res.get("usage_total_tokens", 0)
+        await record_deepseek_usage(session, site.user_id, site.id, deepseek_tokens)
+        if jina_tokens > 0:
+            await record_jina_usage(session, site.user_id, site.id, jina_tokens)
         await session.commit()
 
     return {
