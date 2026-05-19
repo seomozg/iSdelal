@@ -307,7 +307,7 @@ async def chat(
         # Fallback: find any site with this collection (for anonymous tracking)
         stmt = select(Site).where(
             Site.collection_name == req.collection,
-        )
+        ).order_by(Site.id.asc()).limit(1)
         result = await session.execute(stmt)
         site = result.scalar_one_or_none()
 
@@ -362,7 +362,7 @@ async def chat_stream(
     if not site:
         stmt = select(Site).where(
             Site.collection_name == req.collection,
-        )
+        ).order_by(Site.id.asc()).limit(1)
         result = await session.execute(stmt)
         site = result.scalar_one_or_none()
 
