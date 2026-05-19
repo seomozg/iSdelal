@@ -22,6 +22,7 @@ import os
 # Get Jina API key from environment
 JINA_API_KEY = os.getenv("JINA_API_KEY")
 JINA_EMBEDDING_URL = "https://api.jina.ai/v1/embeddings"
+EMBED_MODEL = os.getenv("EMBED_MODEL", "jina-embeddings-v2-base-en")
 
 # In-memory job tracker for background ingest tasks
 _ingest_jobs: Dict[str, Dict[str, Any]] = {}
@@ -147,7 +148,7 @@ def embed_texts(texts):
                     "Authorization": f"Bearer {JINA_API_KEY}"
                 },
                 json={
-                    "model": "jina-embeddings-v2-base-en",  # Free tier model
+                    "model": EMBED_MODEL,
                     "input": batch
                 }
             )
