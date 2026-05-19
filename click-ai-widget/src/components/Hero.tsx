@@ -149,21 +149,6 @@ const Hero = ({ onSubmit, isLoading }: HeroProps) => {
           </span>
         </motion.div>
 
-        {/* Login button */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-          className="mt-8 text-center"
-        >
-          <a
-            href="/login"
-            className="inline-flex items-center gap-2 px-5 py-2.5 border border-border rounded-lg text-sm text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-primary/5 transition-all"
-          >
-            <LogIn className="w-4 h-4" />
-            Войти в кабинет
-          </a>
-        </motion.div>
       </div>
     </section>
   );

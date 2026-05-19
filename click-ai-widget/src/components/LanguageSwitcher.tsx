@@ -1,11 +1,19 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { motion } from "framer-motion";
+import { LogIn } from "lucide-react";
 
 const LanguageSwitcher = () => {
   const { language, setLanguage } = useLanguage();
 
   return (
-    <div className="fixed top-4 right-4 z-50">
+    <div className="fixed top-4 right-4 z-50 flex items-center gap-3">
+      <a
+        href="/login"
+        className="hidden sm:inline-flex items-center gap-2 px-4 py-2 border border-border rounded-lg text-sm text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-primary/5 transition-all"
+      >
+        <LogIn className="w-4 h-4" />
+        Войти
+      </a>
       <div className="glass-card rounded-full p-1 flex gap-1">
         <button
           onClick={() => setLanguage("ru")}
