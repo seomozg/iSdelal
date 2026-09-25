@@ -369,8 +369,9 @@ async def chat_stream(
         result = await session.execute(stmt)
         site = result.scalar_one_or_none()
 
-    # 1) embed question
-    embs = embed_texts([req.question])
+    # 1) embed question (embed_texts returns (embeddings, jina_tokens) tuple)
+    embs_result = embed_texts([req.question])
+    embs, jina_tokens = embs_result if isinstance(embs_result, tuple) else (embs_result, 0)
     q_emb = embs[0]
     # 2) query qdrant
     snippets = query_and_build_context(q_emb, collection_name=req.collection)
