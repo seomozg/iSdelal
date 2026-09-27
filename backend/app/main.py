@@ -4,6 +4,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+import asyncio
+import logging
 import os
 from typing import Optional, List
 from contextlib import asynccontextmanager
@@ -31,10 +33,41 @@ ROOT_PATH = os.getenv("ROOT_PATH", "")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: init DB and seed tariffs."""
+    """Startup: init DB, seed tariffs, start Telegram bot (if TG_BOT_TOKEN set)."""
     await init_db()
     await seed_tariffs()
-    yield
+
+    tg_task: Optional[asyncio.Task] = None
+    tg_token = os.getenv("TG_BOT_TOKEN", "").strip()
+    if tg_token:
+        from .telegram_bot import TelegramBot
+        bot = TelegramBot(tg_token)
+        app.state.telegram_bot = bot
+        tg_task = asyncio.create_task(bot.run())
+        tg_task.add_done_callback(_log_tg_task_done)
+        logging.getLogger("telegram_bot").info("Telegram bot task scheduled")
+    else:
+        logging.getLogger("telegram_bot").info("TG_BOT_TOKEN not set — Telegram bot disabled")
+
+    try:
+        yield
+    finally:
+        if tg_task is not None:
+            tg_task.cancel()
+            try:
+                await tg_task
+            except asyncio.CancelledError:
+                pass
+            except Exception:
+                logging.getLogger("telegram_bot").exception("telegram bot task shutdown error")
+
+
+def _log_tg_task_done(task: asyncio.Task) -> None:
+    if task.cancelled():
+        return
+    exc = task.exception()
+    if exc is not None:
+        logging.getLogger("telegram_bot").error("telegram bot task failed: %s", exc)
 
 
 app = FastAPI(root_path=ROOT_PATH, lifespan=lifespan)

@@ -8,6 +8,7 @@ A Retrieval-Augmented Generation (RAG) system with Qdrant vector database, FastA
 - **🤖 AI Chat**: AI integration with context-aware responses
 - **🕷️ Web Crawling**: Automated website content indexing
 - **💬 Chat Widget**: Ready-to-use JavaScript widget for websites
+- **🤖 Telegram Bot**: RAG answers in Telegram, same pipeline as the widget
 - **🐳 Docker Ready**: Complete containerized setup
 - **📊 Admin Interface**: Web-based content management
 - **🔐 Secure**: CORS protection configured
@@ -384,6 +385,52 @@ window.AIWidgetConfig = {
 </script>
 <script src="https://yourdomain.com/widget/widget.js"></script>
 ```
+
+## 🤖 Telegram Bot
+
+The backend can run a Telegram bot that answers from a Qdrant collection — the same
+RAG pipeline as the website widget (embed → search → DeepSeek stream).
+
+### Setup
+
+1. Get a token from [@BotFather](https://t.me/BotFather) and put it into `backend/.env`:
+   ```
+   TG_BOT_TOKEN=123456:ABC-your-token
+   ```
+2. Restart the backend (`docker compose up -d --force-recreate backend` — `env_file`
+   values are read at container creation time).
+3. Open the deep link to bind your chat to a collection:
+   ```
+   https://t.me/<bot_username>?start=<collection_name>
+   ```
+   Example: `https://t.me/isdelal_bot?start=padel_russia_online`
+
+> ⚠️ Telegram ignores arbitrary query params — `t.me/<bot>?collection=...` does **not**
+> work. Only `?start=<payload>` is passed to the bot (as `/start <payload>`).
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `/start <collection>` | Bind the chat to a collection (validates it exists in Qdrant) |
+| `/collection <collection>` | Switch the collection |
+| `/help` | Show help |
+
+Plain text messages are answered from the bound collection with streamed edits
+(`editMessageText`), a typing indicator, and per-site usage tracking in the dashboard.
+
+### Bot settings (`.env`)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TG_BOT_TOKEN` | — (bot disabled) | Bot API token from @BotFather |
+| `TG_DAILY_LIMIT` | `50` | Messages per chat per day (`0` = unlimited) |
+| `TG_MAX_CONCURRENT` | `4` | Max parallel answers |
+| `TG_ANSWER_TIMEOUT` | `120` | Answer timeout, seconds |
+
+Notes: works in private chats only; long polling assumes a single uvicorn worker
+(default) — move to webhooks if you scale horizontally; chat→collection bindings are
+stored in the `telegram_chats` table (created automatically on startup).
 
 ## 🚨 Troubleshooting
 

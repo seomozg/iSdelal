@@ -67,10 +67,12 @@ def call_llm_with_context(user_question: str, context_snippets: list):
     return {"answer": answer, "usage_total_tokens": usage_total_tokens}
 
 
-def call_llm_stream(user_question: str, context_snippets: list):
+def call_llm_stream(user_question: str, context_snippets: list, usage: dict | None = None):
     """
     Stream tokens from DeepSeek LLM one by one.
     Returns a generator that yields token strings.
+    If `usage` dict is provided, it is filled with total_tokens from the stream
+    (via stream_options.include_usage; silently falls back if unsupported).
     """
     prompt_parts = ["You are a website assistant. Use only the provided context:"]
     for s in context_snippets:
@@ -80,7 +82,7 @@ def call_llm_stream(user_question: str, context_snippets: list):
 
     prompt = "\n".join(prompt_parts)
 
-    stream = client_llm.chat.completions.create(
+    create_kwargs = dict(
         model="deepseek-chat",
         messages=[
             {"role": "system", "content": "You are a helpful website assistant."},
@@ -89,7 +91,20 @@ def call_llm_stream(user_question: str, context_snippets: list):
         temperature=0.2,
         stream=True
     )
+    if usage is not None:
+        create_kwargs["stream_options"] = {"include_usage": True}
+
+    try:
+        stream = client_llm.chat.completions.create(**create_kwargs)
+    except Exception:
+        # Some providers/endpoints may reject stream_options — retry without it.
+        if usage is None or "stream_options" not in create_kwargs:
+            raise
+        create_kwargs.pop("stream_options", None)
+        stream = client_llm.chat.completions.create(**create_kwargs)
 
     for chunk in stream:
-        if chunk.choices[0].delta.content is not None:
+        if usage is not None and getattr(chunk, "usage", None) is not None:
+            usage["total_tokens"] = chunk.usage.total_tokens
+        if chunk.choices and chunk.choices[0].delta.content is not None:
             yield chunk.choices[0].delta.content

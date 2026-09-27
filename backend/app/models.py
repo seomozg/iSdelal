@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, JSON, Float
+from sqlalchemy import Column, Integer, BigInteger, String, DateTime, ForeignKey, Boolean, JSON, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
@@ -91,3 +91,14 @@ class Payment(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="payments")
+
+
+class TelegramChat(Base):
+    """Binding of a Telegram chat to a Qdrant collection (RAG knowledge base)."""
+    __tablename__ = "telegram_chats"
+
+    chat_id = Column(BigInteger, primary_key=True)  # Telegram chat id (can exceed int32)
+    collection_name = Column(String, nullable=False)
+    username = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
