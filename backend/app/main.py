@@ -41,6 +41,14 @@ async def lifespan(app: FastAPI):
     tg_token = os.getenv("TG_BOT_TOKEN", "").strip()
     if tg_token:
         from .telegram_bot import TelegramBot
+        tg_logger = logging.getLogger("telegram_bot")
+        if not tg_logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(
+                logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+            )
+            tg_logger.addHandler(handler)
+            tg_logger.setLevel(logging.INFO)
         bot = TelegramBot(tg_token)
         app.state.telegram_bot = bot
         tg_task = asyncio.create_task(bot.run())
