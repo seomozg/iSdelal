@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from .database import get_session
 from .models import User, Site, UsageStats, Subscription, Tariff, Payment
@@ -529,3 +529,27 @@ async def create_yookassa_payment(
     except Exception as e:
         print(f"YooKassa request failed: {e}")
         raise HTTPException(status_code=502, detail=str(e))
+
+# ===================== Telegram Bot (public) =====================
+
+class BotInfoResponse(BaseModel):
+    enabled: bool
+    username: Optional[str] = None
+
+
+@router.get("/bot/info", response_model=BotInfoResponse)
+async def bot_info(request: Request) -> BotInfoResponse:
+    """Public endpoint: Telegram bot availability + username for deep links.
+
+    Used by the landing banner and dashboard to build
+    https://t.me/<username>?start=<collection_name> links.
+    """
+    import os as _os
+
+    bot = getattr(request.app.state, "telegram_bot", None)
+    username = getattr(bot, "username", None) if bot is not None else None
+    enabled = bot is not None or bool(_os.getenv("TG_BOT_TOKEN", "").strip())
+    if not username:
+        username = _os.getenv("TG_BOT_USERNAME") or None
+    return BotInfoResponse(enabled=enabled, username=username)
+

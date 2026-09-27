@@ -321,3 +321,52 @@ class TestAnswerFlow:
         assert any("индексирует" in t for t in sent_texts(calls))
         assert rag_mocks["embed_calls"] == 0
 
+
+class TestBotInfoEndpoint:
+    """GET /api/bot/info — public endpoint for the landing banner and dashboard."""
+
+    def test_public_and_returns_shape(self):
+        from fastapi.testclient import TestClient
+        from app.main import app
+
+        client = TestClient(app)
+        resp = client.get("/api/bot/info")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data["enabled"], bool)
+        assert data["username"] is None or isinstance(data["username"], str)
+
+    def test_username_and_enabled_from_app_state(self):
+        from types import SimpleNamespace
+        from fastapi.testclient import TestClient
+        from app.main import app
+
+        client = TestClient(app)
+        app.state.telegram_bot = SimpleNamespace(username="isdelal_bot")
+        try:
+            data = client.get("/api/bot/info").json()
+            assert data["enabled"] is True
+            assert data["username"] == "isdelal_bot"
+        finally:
+            app.state.telegram_bot = None  # cleanup for other tests
+
+    def test_disabled_bot_reports_enabled_false(self):
+        """With no bot instance and no TG_BOT_TOKEN env, enabled=false."""
+        import os
+        from fastapi.testclient import TestClient
+        from app.main import app
+
+        client = TestClient(app)
+        app.state.telegram_bot = None
+        old = os.environ.pop("TG_BOT_TOKEN", None)
+        old_username = os.environ.pop("TG_BOT_USERNAME", None)
+        try:
+            data = client.get("/api/bot/info").json()
+            assert data["enabled"] is False
+            assert data["username"] is None
+        finally:
+            if old is not None:
+                os.environ["TG_BOT_TOKEN"] = old
+            if old_username is not None:
+                os.environ["TG_BOT_USERNAME"] = old_username
+
