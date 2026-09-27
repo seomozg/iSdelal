@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { sites as sitesApi, collections } from "@/lib/api";
-import { ArrowLeft, Copy, Check, Code2, Settings } from "lucide-react";
+import { sites as sitesApi, collections, bot } from "@/lib/api";
+import { tgStartLink } from "@/lib/telegram";
+import { ArrowLeft, Copy, Check, Code2, Settings, Send, ExternalLink } from "lucide-react";
 
 interface Site {
   id: number;
@@ -22,7 +23,9 @@ export default function SiteDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [tgCopied, setTgCopied] = useState(false);
   const [qdrantPoints, setQdrantPoints] = useState(0);
+  const [botInfo, setBotInfo] = useState<{ enabled: boolean; username: string | null } | null>(null);
 
   const [config, setConfig] = useState({
     title: "AI Assistant",
@@ -48,6 +51,10 @@ export default function SiteDetail() {
       })
       .catch((e) => { setError(e.message); setLoading(false); });
   }, [id]);
+
+  useEffect(() => {
+    bot.info().then(setBotInfo).catch(() => setBotInfo(null));
+  }, []);
 
   async function saveWidgetConfig() {
     if (!id) return;
@@ -80,6 +87,17 @@ window.AIWidgetConfig = {
     navigator.clipboard.writeText(getWidgetCode());
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  function getTgLink(): string {
+    if (!site || !botInfo?.username) return "";
+    return tgStartLink(botInfo.username, site.collection_name);
+  }
+
+  function handleCopyTg() {
+    navigator.clipboard.writeText(getTgLink());
+    setTgCopied(true);
+    setTimeout(() => setTgCopied(false), 2000);
   }
 
   if (loading) {
@@ -181,6 +199,37 @@ window.AIWidgetConfig = {
               </button>
             </div>
           </div>
+
+          {/* Telegram bot deep link */}
+          {botInfo?.enabled && botInfo.username && (
+            <div className="bg-card rounded-xl shadow-sm border border-border p-5">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Send className="w-5 h-5 text-[#229ED9]" /> Telegram-бот
+              </h2>
+              <p className="text-sm text-muted-foreground mb-3">
+                Ссылка-приглашение привязывает чат к этому проекту: бот будет отвечать на вопросы по его контенту.
+              </p>
+              <pre className="bg-[#0f1729] text-[#e2e8f0] p-3 rounded-lg text-xs overflow-x-auto border border-border mb-3 break-all whitespace-pre-wrap">{getTgLink()}</pre>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCopyTg}
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-primary text-primary-foreground text-xs rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  {tgCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  {tgCopied ? "Скопировано!" : "Копировать"}
+                </button>
+                <a
+                  href={getTgLink()}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-[#229ED9] text-white text-xs rounded-lg hover:bg-[#1e8fc9] transition-colors"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Открыть
+                </a>
+              </div>
+            </div>
+          )}
 
         </div>
       </div>

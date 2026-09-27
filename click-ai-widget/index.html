@@ -20,22 +20,6 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-
-    <!-- AI Chat Widget -->
-    <script>
-    window.AIWidgetConfig = {
-      apiBase: window.location.origin,
-      collection: 'siteagent',
-      title: 'AI Assistant',
-      language: 'en',
-      welcomeMessage: 'Hello! How can I help you today?',
-      color: '#3B82F6',
-      sendButtonText: 'Send',
-      inputPlaceholder: 'Type your message...'
-    };
-    </script>
-    <script src="/widget/widget.js?v=2"></script>
-    <link rel="stylesheet" href="/widget/widget.css?v=2">
+    <!-- AI chat widget is loaded dynamically by ChatWidgetLoader (Vite cannot bundle server-side /widget/* paths) -->
   </body>
-</html>
 </html>

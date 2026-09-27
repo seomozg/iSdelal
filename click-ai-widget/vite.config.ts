@@ -14,6 +14,15 @@ export default defineConfig(({ mode }) => ({
         target: 'http://localhost:8000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
+      },
+      '/widget': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      // chat widget + chat endpoint served by the backend in dev
+      '/chat': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
       }
     }
   },

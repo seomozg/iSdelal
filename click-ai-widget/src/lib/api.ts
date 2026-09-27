@@ -53,6 +53,11 @@ export const tariffs = {
   mySubscription: () => request<any>("/api/user/subscription"),
 };
 
+// Telegram bot (public)
+export const bot = {
+  info: () => request<{ enabled: boolean; username: string | null }>("/api/bot/info"),
+};
+
 // Payments
 export const payments = {
   list: () => request<any[]>("/api/user/payments"),

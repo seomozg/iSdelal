@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { stats } from "@/lib/api";
-import { BarChart3, MessageSquare, FileText, Coins, Globe } from "lucide-react";
+import { stats, bot } from "@/lib/api";
+import { tgStartLink } from "@/lib/telegram";
+import { BarChart3, MessageSquare, FileText, Coins, Globe, Send } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface UserStats {
@@ -22,12 +23,14 @@ export default function Overview() {
   const [data, setData] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [botInfo, setBotInfo] = useState<{ enabled: boolean; username: string | null } | null>(null);
 
   useEffect(() => {
     stats.user()
       .then(setData)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
+    bot.info().then(setBotInfo).catch(() => setBotInfo(null));
   }, []);
 
   if (loading) {
@@ -90,7 +93,20 @@ export default function Overview() {
                       <Link to={`/dashboard/sites/${site.site_id}`} className="text-primary hover:underline font-medium">
                         {site.collection_name}
                       </Link>
-                      <p className="text-xs text-muted-foreground">{site.url}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        {site.url}
+                        {botInfo?.enabled && botInfo.username && (
+                          <a
+                            href={tgStartLink(botInfo.username, site.collection_name)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="hover:text-[#229ED9]"
+                            title="Открыть бота с этим проектом в Telegram"
+                          >
+                            <Send className="w-3 h-3 inline" />
+                          </a>
+                        )}
+                      </p>
                     </td>
                     <td className="px-5 py-3 text-sm text-foreground">{site.chat_requests}</td>
                     <td className="px-5 py-3 text-sm text-foreground">{site.deepseek_tokens.toLocaleString()}</td>

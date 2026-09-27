@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { sites as sitesApi, ingest } from "@/lib/api";
+import { sites as sitesApi, ingest, bot } from "@/lib/api";
+import { tgStartLink } from "@/lib/telegram";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, Trash2, ExternalLink, Loader2 } from "lucide-react";
+import { Plus, Trash2, ExternalLink, Loader2, Send } from "lucide-react";
 
 interface Site {
   id: number;
@@ -21,6 +22,7 @@ export default function Sites() {
   const [showAdd, setShowAdd] = useState(false);
   const [newUrl, setNewUrl] = useState("");
   const [adding, setAdding] = useState(false);
+  const [botInfo, setBotInfo] = useState<{ enabled: boolean; username: string | null } | null>(null);
   const navigate = useNavigate();
 
   function loadSites() {
@@ -32,6 +34,10 @@ export default function Sites() {
   }
 
   useEffect(() => { loadSites(); }, []);
+
+  useEffect(() => {
+    bot.info().then(setBotInfo).catch(() => setBotInfo(null));
+  }, []);
 
   async function handleAdd() {
     if (!newUrl.trim()) return;
@@ -124,13 +130,26 @@ export default function Sites() {
                     </a>
                   </p>
                 </div>
-                <button
-                  onClick={() => handleDelete(site.id)}
-                  className="p-2 text-muted-foreground hover:text-red-400 transition-colors"
-                  title="Удалить сайт"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                  {botInfo?.enabled && botInfo.username && (
+                    <a
+                      href={tgStartLink(botInfo.username, site.collection_name)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-2 text-muted-foreground hover:text-[#229ED9] transition-colors"
+                      title="Открыть бота с этим проектом в Telegram"
+                    >
+                      <Send className="w-4 h-4" />
+                    </a>
+                  )}
+                  <button
+                    onClick={() => handleDelete(site.id)}
+                    className="p-2 text-muted-foreground hover:text-red-400 transition-colors"
+                    title="Удалить сайт"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
                 <div>

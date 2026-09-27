@@ -43,6 +43,12 @@ interface Translations {
     subtitle: string;
     items: { title: string; description: string }[];
   };
+  tgBanner: {
+    badge: string;
+    title: string;
+    subtitle: string;
+    cta: string;
+  };
   faq: {
     title: string;
     subtitle: string;
@@ -128,6 +134,12 @@ const translations: Record<Language, Translations> = {
         { question: "Есть ли бесплатный тариф?", answer: "Да, мы предлагаем бесплатный тариф с базовыми функциями." },
       ],
     },
+    tgBanner: {
+      badge: "Telegram-бот",
+      title: "Ваш AI-агент — теперь и в Telegram",
+      subtitle: "Общайтесь с ИИ-ассистентом по контенту вашего сайта прямо в мессенджере — те же умные ответы, что и в виджете.",
+      cta: "Открыть бота",
+    },
     footer: {
       description: "Умный ИИ-помощник для вашего сайта за считанные минуты.",
       product: "Продукт",
@@ -205,6 +217,12 @@ const translations: Record<Language, Translations> = {
         { question: "Can I customize the widget appearance?", answer: "Yes, you can change colors, text, and widget position." },
         { question: "Is there a free tier?", answer: "Yes, we offer a free tier with basic features." },
       ],
+    },
+    tgBanner: {
+      badge: "Telegram Bot",
+      title: "Your AI agent — now in Telegram",
+      subtitle: "Chat with the AI assistant about your website content right in your messenger — the same smart answers as in the widget.",
+      cta: "Open the bot",
     },
     footer: {
       description: "Smart AI assistant for your website in minutes.",

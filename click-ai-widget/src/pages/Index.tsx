@@ -1,5 +1,7 @@
 import { useState } from "react";
 import Hero from "@/components/Hero";
+import TgBanner from "@/components/TgBanner";
+import ChatWidgetLoader from "@/components/ChatWidgetLoader";
 import HowItWorks from "@/components/HowItWorks";
 import WidgetCode from "@/components/WidgetCode";
 import WidgetConfig from "@/components/WidgetConfig";
@@ -80,6 +82,7 @@ const IndexContent = () => {
     <main className="min-h-screen bg-background">
       <LanguageSwitcher />
       <Hero onSubmit={handleUrlSubmit} isLoading={isLoading} />
+      <TgBanner />
       <HowItWorks />
       <WidgetCode url={submittedUrl} isVisible={showWidgetCode} config={widgetConfig} collectionName={collectionName} />
       <WidgetConfig config={widgetConfig} onChange={setWidgetConfig} isVisible={showWidgetCode} />
@@ -94,6 +97,7 @@ const IndexContent = () => {
 const Index = () => {
   return (
     <LanguageProvider>
+      <ChatWidgetLoader />
       <IndexContent />
     </LanguageProvider>
   );
