@@ -1,97 +1,95 @@
-# iSdelal — RAG system for websites
+# iSdelal — RAG-система для сайтов
 
-Context-aware AI answers over website content, delivered as an embeddable chat
-widget and a Telegram bot, managed from an admin dashboard. Built on
-**Qdrant + FastAPI + DeepSeek + Jina embeddings**.
+Контекстные ответы ИИ по содержимому сайта: встраиваемый чат-виджет, Telegram-бот
+и админ-панель. Построено на **Qdrant + FastAPI + DeepSeek + Jina embeddings**.
 
-## ✨ Features
+## ✨ Возможности
 
-- **🔍 Semantic search** — Qdrant-powered vector similarity.
-- **🕷️ Web crawling & indexing** — auto-crawl a site, chunk text, embed, upsert
-  incrementally (Playwright support for JS-heavy pages).
-- **🤖 Context-aware chat** — streaming answers (SSE) grounded in the indexed
-  content.
-- **💬 Embeddable widget** — a small vanilla-JS chat widget with no dependencies.
-- **📱 Telegram bot** — same RAG pipeline in Telegram, with per-collection deep
-  links (`t.me/<bot>?start=<collection>`).
-- **📊 Admin dashboard** — React SPA: sites, usage stats, widget code generator,
-  tariffs, YooKassa payments.
-- **🔐 Auth** — Google Sign-In + JWT, per-user data isolation.
-- **🐳 Docker** — one `docker compose up` for the whole stack.
+- **🔍 Семантический поиск** — векторная близость на базе Qdrant.
+- **🕷️ Краулинг и индексация** — автопарсинг сайта, разбивка на чанки, эмбеддинги,
+  инкрементальный upsert (поддержка Playwright для JS-сайтов).
+- **🤖 Контекстный чат** — стриминговые ответы (SSE) по проиндексированному контенту.
+- **💬 Встраиваемый виджет** — маленький JS-виджет без зависимостей.
+- **📱 Telegram-бот** — тот же RAG-конвейер в Telegram, с deep-ссылками на коллекцию
+  (`t.me/<bot>?start=<collection>`).
+- **📊 Админ-панель** — React SPA: сайты, статистика, генератор кода виджета, тарифы,
+  платежи YooKassa.
+- **🔐 Аутентификация** — Google Sign-In + JWT, изоляция данных пользователей.
+- **🐳 Docker** — один `docker compose up` для всего стека.
 
-## 🏗️ Architecture
+## 🏗️ Архитектура
 
 ```
 Browser  ── widget/widget.js ──────────┐
 Telegram ── Bot API (long polling) ────┤
-React SPA ── REST /api/* ──────────────┤── FastAPI backend ──┬─ Qdrant (vectors)
+React SPA ── REST /api/* ──────────────┤── FastAPI backend ──┬─ Qdrant (векторы)
                                        │                    ├─ DeepSeek (LLM)
-                                       │                    └─ Jina (embeddings)
-                                       └─ nginx (TLS, reverse proxy, static)
+                                       │                    └─ Jina (эмбеддинги)
+                                       └─ nginx (TLS, прокси, статика)
 ```
 
-| Component | Location | Role |
-|-----------|----------|------|
-| `backend/` | `backend/app` | FastAPI app: REST API, ingestion, RAG, auth, Telegram bot |
-| `widget/` | `widget/` | Vanilla JS embeddable chat widget (`widget.js`, `widget.css`) |
-| `click-ai-widget/` | `click-ai-widget/src` | React SPA: landing page + admin dashboard |
-| `qdrant` | `docker-compose.yml` | Vector database |
+| Компонент | Где | Роль |
+|-----------|-----|------|
+| `backend/` | `backend/app` | FastAPI: REST API, индексация, RAG, аутентификация, Telegram-бот |
+| `widget/` | `widget/` | Встраиваемый JS-виджет (`widget.js`, `widget.css`) |
+| `click-ai-widget/` | `click-ai-widget/src` | React SPA: лендинг + админ-панель |
+| `qdrant` | `docker-compose.yml` | Векторная база данных |
 
-The data flow for a chat message is: **embed question → search Qdrant →
-prompt LLM with retrieved snippets → stream answer**. The Telegram bot reuses
-the exact same pipeline as the widget endpoint (`/chat/stream`).
+Поток обработки сообщения: **эмбеддинг вопроса → поиск в Qdrant → промпт для LLM
+с найденными сниппетами → стриминг ответа**. Telegram-бот использует ровно тот же
+конвейер, что и эндпоинт виджета (`/chat/stream`).
 
-## 📁 Repository layout
+## 📁 Структура репозитория
 
 ```
 backend/
   app/
-    main.py            app factory, middleware, mounts, lifespan, /health
-    routers/           route modules (auth, ingest, chat, sites, payments, …)
-    ingest.py          crawl + index orchestration
-    crawler.py         page fetching (HTTP + Playwright)
-    embeddings.py      Jina embeddings
-    jobs.py            in-memory ingest job tracker
-    rag.py             Qdrant search + LLM prompt/stream
-    qdrant_client.py   Qdrant connection
-    database.py        SQLAlchemy async engine/session
-    models.py          ORM models
-    schemas.py         Pydantic response models
+    main.py            фабрика приложения, middleware, mounts, lifespan, /health
+    routers/           роутеры (auth, ingest, chat, sites, payments, …)
+    ingest.py          оркестрация: краулинг → индексация
+    crawler.py         загрузка страниц (HTTP + Playwright)
+    embeddings.py      эмбеддинги Jina
+    jobs.py            in-memory трекер задач индексации
+    rag.py             поиск в Qdrant + промпт/стрим LLM
+    qdrant_client.py   подключение к Qdrant
+    database.py        async engine/session SQLAlchemy
+    models.py          ORM-модели
+    schemas.py         Pydantic-модели ответов
     auth.py            Google OAuth + JWT
-    tracking.py        usage tracking and quotas
-    telegram_bot.py    Telegram bot (long polling)
-  tests/               pytest suite
-widget/                embeddable widget (widget.js, widget.css)
+    tracking.py        учёт использования и квоты
+    telegram_bot.py    Telegram-бот (long polling)
+  tests/               pytest
+widget/                встраиваемый виджет (widget.js, widget.css)
 click-ai-widget/       React SPA (Vite + TypeScript + Tailwind + shadcn/ui)
-docker-compose.yml     qdrant + backend services
+docker-compose.yml     сервисы qdrant + backend
 ```
 
-## 🛠️ Tech stack
+## 🛠️ Технологии
 
 - **Backend**: Python 3.11, FastAPI, SQLAlchemy (async, aiosqlite), Qdrant,
   OpenAI SDK (DeepSeek), httpx, requests, BeautifulSoup, Playwright.
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, framer-motion.
-- **Widget**: vanilla JavaScript (no dependencies).
-- **Infra**: Docker Compose, nginx (reverse proxy + TLS).
+- **Widget**: чистый JavaScript (без зависимостей).
+- **Инфраструктура**: Docker Compose, nginx (прокси + TLS).
 
-## 🚀 Quick start
+## 🚀 Быстрый старт
 
-### Prerequisites
+### Требования
 
-- Docker & Docker Compose
-- [Jina AI](https://jina.ai) API key (embeddings)
-- [DeepSeek](https://platform.deepseek.com) API key (LLM)
+- Docker и Docker Compose
+- API-ключ [Jina AI](https://jina.ai) (эмбеддинги)
+- API-ключ [DeepSeek](https://platform.deepseek.com) (LLM)
 
-### 1. Configure
+### 1. Настройка
 
 ```bash
 git clone https://github.com/seomozg/iSdelal.git
 cd iSdelal
 cp backend/.env.example backend/.env
-# edit backend/.env: JINA_API_KEY, DEEPSEEK_API_KEY
+# отредактируйте backend/.env: JINA_API_KEY, DEEPSEEK_API_KEY
 ```
 
-### 2. Run
+### 2. Запуск
 
 ```bash
 docker compose up -d --build
@@ -99,7 +97,7 @@ docker compose ps
 curl http://localhost:8000/health   # {"status":"ok"}
 ```
 
-### 3. Frontend (development)
+### 3. Frontend (разработка)
 
 ```bash
 cd click-ai-widget
@@ -107,42 +105,42 @@ npm install
 npm run dev          # http://localhost:8080
 ```
 
-## ⚙️ Configuration
+## ⚙️ Конфигурация
 
-Key variables in `backend/.env` (full list in `backend/.env.example`):
+Ключевые переменные в `backend/.env` (полный список — в `backend/.env.example`):
 
-| Variable | Description |
-|----------|-------------|
-| `JINA_API_KEY` | Jina AI key (embeddings) |
-| `DEEPSEEK_API_KEY` | DeepSeek key (LLM) |
-| `QDRANT_HOST` / `QDRANT_PORT` | Qdrant address (default `qdrant` / `6333`) |
-| `EMBED_MODEL` | embedding model (default `jina-embeddings-v2-base-en`) |
-| `RAG_TOP_K` | context snippets per answer (default `3`) |
-| `CRAWL_MAX_PAGES` | max pages per crawl (default `50`) |
-| `USE_PLAYWRIGHT` | render JS before crawling (default `true`) |
-| `TG_BOT_TOKEN` | enables the Telegram bot (empty = disabled) |
-| `TG_DAILY_LIMIT` | bot messages per chat per day (default `50`, `0` = unlimited) |
+| Переменная | Описание |
+|-----------|----------|
+| `JINA_API_KEY` | ключ Jina AI (эмбеддинги) |
+| `DEEPSEEK_API_KEY` | ключ DeepSeek (LLM) |
+| `QDRANT_HOST` / `QDRANT_PORT` | адрес Qdrant (по умолчанию `qdrant` / `6333`) |
+| `EMBED_MODEL` | модель эмбеддингов (по умолчанию `jina-embeddings-v2-base-en`) |
+| `RAG_TOP_K` | сниппетов контекста на ответ (по умолчанию `3`) |
+| `CRAWL_MAX_PAGES` | максимум страниц за краулинг (по умолчанию `50`) |
+| `USE_PLAYWRIGHT` | рендер JS перед парсингом (по умолчанию `true`) |
+| `TG_BOT_TOKEN` | включает Telegram-бота (пусто = выключен) |
+| `TG_DAILY_LIMIT` | сообщений бота на чат в день (по умолчанию `50`, `0` = без лимита) |
 
 ## 🔌 API
 
-Public endpoints:
+Публичные эндпоинты:
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/health` | health check |
-| `POST` | `/ingest` | start indexing (`url` or `urls` + `collection`) |
-| `GET` | `/ingest/status/{job_id}` | job status |
-| `GET` | `/ingest/jobs` | recent jobs |
-| `POST` | `/chat` | non-streaming RAG answer |
-| `POST` | `/chat/stream` | streaming RAG answer (SSE) |
-| `GET` | `/api/bot/info` | Telegram bot availability + username |
+| Метод | Путь | Описание |
+|-------|------|----------|
+| `GET` | `/health` | проверка работоспособности |
+| `POST` | `/ingest` | запустить индексацию (`url` или `urls` + `collection`) |
+| `GET` | `/ingest/status/{job_id}` | статус задачи |
+| `GET` | `/ingest/jobs` | последние задачи |
+| `POST` | `/chat` | ответ RAG без стриминга |
+| `POST` | `/chat/stream` | стриминговый ответ RAG (SSE) |
+| `GET` | `/api/bot/info` | доступность Telegram-бота и username |
 
-Authenticated (Bearer JWT): `/auth/*`, `/collections`, `/api/sites*`,
-`/api/user/*`, `/api/tariffs`, `/api/payments/*`. Interactive docs at `/docs`.
+С аутентификацией (Bearer JWT): `/auth/*`, `/collections`, `/api/sites*`,
+`/api/user/*`, `/api/tariffs`, `/api/payments/*`. Интерактивная документация — `/docs`.
 
-## 💬 Web widget
+## 💬 Веб-виджет
 
-Embed on any page:
+Вставьте на любую страницу:
 
 ```html
 <script>
@@ -156,33 +154,33 @@ window.AIWidgetConfig = {
 <script src="https://your-host/widget/widget.js"></script>
 ```
 
-## 🤖 Telegram bot
+## 🤖 Telegram-бот
 
-1. Get a token from [@BotFather](https://t.me/BotFather), set `TG_BOT_TOKEN` in `.env`.
-2. Restart the backend (`docker compose up -d --force-recreate backend`).
-3. Open a deep link to bind a chat to a collection:
+1. Получите токен у [@BotFather](https://t.me/BotFather) и запишите `TG_BOT_TOKEN` в `.env`.
+2. Перезапустите бэкенд (`docker compose up -d --force-recreate backend`).
+3. Откройте deep-ссылку, чтобы привязать чат к коллекции:
 
 ```
 https://t.me/<bot_username>?start=<collection_name>
 ```
 
-Commands: `/start <collection>`, `/collection <collection>`, `/help`.
+Команды: `/start <collection>`, `/collection <collection>`, `/help`.
 
-> ⚠️ Telegram ignores arbitrary query params — `t.me/<bot>?collection=...` does
-> **not** work. Only `?start=<payload>` is passed to the bot (as `/start <payload>`).
+> ⚠️ Telegram игнорирует произвольные query-параметры — `t.me/<bot>?collection=...`
+> **не** работает. Передаётся только `?start=<payload>` (как `/start <payload>`).
 
-## 🧪 Testing
+## 🧪 Тестирование
 
 ```bash
 docker compose exec backend pytest tests/ -v
-# or locally:
+# или локально:
 cd backend && pip install -r requirements.txt && pytest tests/ -v
 ```
 
-The backend suite covers: health, auth, chat/RAG flow, ingest, Qdrant
-connection, and the Telegram bot (routing, bindings, streaming, limits).
+Набор тестов покрывает: health, аутентификацию, чат/RAG-конвейер, индексацию,
+подключение к Qdrant и Telegram-бота (роутинг, привязки, стриминг, лимиты).
 
-## 📄 License
+## 📄 Лицензия
 
-MIT — see [LICENSE](LICENSE).
+MIT — см. [LICENSE](LICENSE).
 
