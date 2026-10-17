@@ -4,17 +4,41 @@ Run with: pytest backend/tests/test_api.py -v
 Or inside container: docker compose exec backend pytest tests/test_api.py -v
 """
 
+import asyncio
 import os
-import pytest
-from fastapi.testclient import TestClient
-from app.main import app
-from app.qdrant_client import get_qdrant_client
+import tempfile
+
+# Isolated SQLite DB for tests — must be set BEFORE importing app modules,
+# because the async engine is created at import time.
+os.environ["DATABASE_URL"] = (
+    f"sqlite+aiosqlite:///{os.path.join(tempfile.mkdtemp(), 'test.db')}"
+)
+# Import of app.rag builds an OpenAI client, which requires a key to be present.
+os.environ.setdefault("DEEPSEEK_API_KEY", "test-key")
+
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+from app.main import app  # noqa: E402
+from app.qdrant_client import get_qdrant_client  # noqa: E402
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _create_tables():
+    """Create DB tables once per session (TestClient does not run lifespan)."""
+    from app.database import init_db
+
+    asyncio.run(init_db())
 
 
 @pytest.fixture
 def client():
-    """FastAPI test client."""
-    return TestClient(app)
+    """FastAPI test client.
+
+    raise_server_exceptions=False so unhandled endpoint errors (e.g. missing
+    JINA_API_KEY) surface as HTTP 500 — matching production behaviour —
+    instead of raising inside the test.
+    """
+    return TestClient(app, raise_server_exceptions=False)
 
 
 
