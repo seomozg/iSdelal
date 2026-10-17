@@ -12,6 +12,10 @@ client_llm = OpenAI(
 
 
 def query_and_build_context(query_embedding, collection_name="site_collection"):
+    """Search Qdrant for the most relevant snippets for a query embedding.
+
+    Returns a list of {"text", "url", "score"} dicts (empty on any error).
+    """
     client_qdrant = get_qdrant_client()
 
     # Use query_points for qdrant-client 1.x
@@ -44,6 +48,7 @@ def query_and_build_context(query_embedding, collection_name="site_collection"):
 
 
 def call_llm_with_context(user_question: str, context_snippets: list):
+    """Build a context-grounded prompt and get a single (non-streaming) answer."""
     prompt_parts = ["You are a website assistant. Use only the provided context:"]
     for s in context_snippets:
         prompt_parts.append("---")

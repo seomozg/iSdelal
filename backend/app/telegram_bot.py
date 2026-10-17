@@ -23,7 +23,8 @@ import httpx
 from sqlalchemy import select
 
 from .database import async_session_factory
-from .ingest import _get_collection_active_ingests, embed_texts
+from .embeddings import embed_texts
+from .jobs import _get_collection_active_ingests
 from .models import Site, TelegramChat
 from .qdrant_client import get_qdrant_client
 from .rag import call_llm_stream, query_and_build_context

@@ -1,11 +1,15 @@
+"""
+SQLAlchemy ORM models (async). Tables are created automatically on startup by
+`database.init_db()`; no external migration tool is used.
+"""
 from sqlalchemy import Column, Integer, BigInteger, String, DateTime, ForeignKey, Boolean, JSON, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
-import enum
 
 
 class Tariff(Base):
+    """Subscription plan: free, tariff_100, tariff_500, tariff_1000."""
     __tablename__ = "tariffs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -19,6 +23,7 @@ class Tariff(Base):
 
 
 class User(Base):
+    """Registered user (Google Sign-In)."""
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -35,6 +40,7 @@ class User(Base):
 
 
 class Site(Base):
+    """A user's website project: URL + Qdrant collection + widget config."""
     __tablename__ = "sites"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -50,6 +56,7 @@ class Site(Base):
 
 
 class UsageStats(Base):
+    """Daily per-site usage counters (deepseek/jina tokens, chat requests)."""
     __tablename__ = "usage_stats"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -66,6 +73,7 @@ class UsageStats(Base):
 
 
 class Subscription(Base):
+    """User's active tariff subscription."""
     __tablename__ = "subscriptions"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -80,6 +88,7 @@ class Subscription(Base):
 
 
 class Payment(Base):
+    """YooKassa payment record."""
     __tablename__ = "payments"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
