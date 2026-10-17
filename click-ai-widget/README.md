@@ -1,73 +1,43 @@
-# Welcome to your Lovable project
+# click-ai-widget — React SPA
 
-## Project info
+Landing page and admin dashboard for **iSdelal** (the RAG backend lives in
+`../backend`).
 
-**URL**: https://lovable.dev/projects/06d25873-b7c8-45b9-b820-9b884a6045c5
+## What's inside
 
-## How can I edit this code?
+- **Landing page** (`src/pages/Index.tsx`) — marketing page with the demo widget,
+  a Telegram-bot banner, pricing and FAQ.
+- **Admin dashboard** (`src/pages/dashboard/`) — sites management, per-site
+  usage stats, widget code generator, tariffs and billing, profile.
+- **Auth** (`src/contexts/AuthContext.tsx`) — Google Sign-In + JWT.
+- **i18n** (`src/contexts/LanguageContext.tsx`) — RU / EN.
+- **UI kit** (`src/components/ui/`) — generated [shadcn/ui](https://ui.shadcn.com) components.
 
-There are several ways of editing your application.
+## Stack
 
-**Use Lovable**
+Vite · React 18 · TypeScript · Tailwind CSS · shadcn/ui · framer-motion · react-router.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/06d25873-b7c8-45b9-b820-9b884a6045c5) and start prompting.
+## Commands
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+npm install
+npm run dev        # dev server (http://localhost:8080), proxies /api, /widget, /chat to :8000
+npm run build      # production build → dist/
+npm run lint       # eslint
 ```
 
-**Edit a file directly in GitHub**
+## Structure
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```
+src/
+  components/      UI components (Hero, Pricing, TgBanner, DashboardLayout, ui/*)
+  contexts/        AuthContext, LanguageContext
+  hooks/           use-toast, use-mobile
+  lib/             api client, telegram deep-link helpers, utils
+  pages/           Index (landing), Login, dashboard/*
+  main.tsx         entry point
+  App.tsx          routes
+```
 
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/06d25873-b7c8-45b9-b820-9b884a6045c5) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+The production bundle is committed to `dist/` and served by nginx as the site
+root; the admin dashboard lives under `/dashboard/*` (SPA fallback).

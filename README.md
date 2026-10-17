@@ -1,493 +1,188 @@
-# iSdelal - AI-Powered RAG System
+# iSdelal — RAG system for websites
 
-A Retrieval-Augmented Generation (RAG) system with Qdrant vector database, FastAPI backend, and admin web interface. Perfect for managing AI-powered Q&A content and embedding chat widgets on websites.
+Context-aware AI answers over website content, delivered as an embeddable chat
+widget and a Telegram bot, managed from an admin dashboard. Built on
+**Qdrant + FastAPI + DeepSeek + Jina embeddings**.
 
 ## ✨ Features
 
-- **🔍 Semantic Search**: Qdrant-powered vector similarity search
-- **🤖 AI Chat**: AI integration with context-aware responses
-- **🕷️ Web Crawling**: Automated website content indexing
-- **💬 Chat Widget**: Ready-to-use JavaScript widget for websites
-- **🤖 Telegram Bot**: RAG answers in Telegram, same pipeline as the widget
-- **🐳 Docker Ready**: Complete containerized setup
-- **📊 Admin Interface**: Web-based content management
-- **🔐 Secure**: CORS protection configured
+- **🔍 Semantic search** — Qdrant-powered vector similarity.
+- **🕷️ Web crawling & indexing** — auto-crawl a site, chunk text, embed, upsert
+  incrementally (Playwright support for JS-heavy pages).
+- **🤖 Context-aware chat** — streaming answers (SSE) grounded in the indexed
+  content.
+- **💬 Embeddable widget** — a small vanilla-JS chat widget with no dependencies.
+- **📱 Telegram bot** — same RAG pipeline in Telegram, with per-collection deep
+  links (`t.me/<bot>?start=<collection>`).
+- **📊 Admin dashboard** — React SPA: sites, usage stats, widget code generator,
+  tariffs, YooKassa payments.
+- **🔐 Auth** — Google Sign-In + JWT, per-user data isolation.
+- **🐳 Docker** — one `docker compose up` for the whole stack.
 
-## 🚀 Quick Start
+## 🏗️ Architecture
+
+```
+Browser  ── widget/widget.js ──────────┐
+Telegram ── Bot API (long polling) ────┤
+React SPA ── REST /api/* ──────────────┤── FastAPI backend ──┬─ Qdrant (vectors)
+                                       │                    ├─ DeepSeek (LLM)
+                                       │                    └─ Jina (embeddings)
+                                       └─ nginx (TLS, reverse proxy, static)
+```
+
+| Component | Location | Role |
+|-----------|----------|------|
+| `backend/` | `backend/app` | FastAPI app: REST API, ingestion, RAG, auth, Telegram bot |
+| `widget/` | `widget/` | Vanilla JS embeddable chat widget (`widget.js`, `widget.css`) |
+| `click-ai-widget/` | `click-ai-widget/src` | React SPA: landing page + admin dashboard |
+| `qdrant` | `docker-compose.yml` | Vector database |
+
+The data flow for a chat message is: **embed question → search Qdrant →
+prompt LLM with retrieved snippets → stream answer**. The Telegram bot reuses
+the exact same pipeline as the widget endpoint (`/chat/stream`).
+
+## 📁 Repository layout
+
+```
+backend/
+  app/
+    main.py            app factory, middleware, mounts, lifespan, /health
+    routers/           route modules (auth, ingest, chat, sites, payments, …)
+    ingest.py          crawl + index orchestration
+    crawler.py         page fetching (HTTP + Playwright)
+    embeddings.py      Jina embeddings
+    jobs.py            in-memory ingest job tracker
+    rag.py             Qdrant search + LLM prompt/stream
+    qdrant_client.py   Qdrant connection
+    database.py        SQLAlchemy async engine/session
+    models.py          ORM models
+    schemas.py         Pydantic response models
+    auth.py            Google OAuth + JWT
+    tracking.py        usage tracking and quotas
+    telegram_bot.py    Telegram bot (long polling)
+  tests/               pytest suite
+widget/                embeddable widget (widget.js, widget.css)
+click-ai-widget/       React SPA (Vite + TypeScript + Tailwind + shadcn/ui)
+docker-compose.yml     qdrant + backend services
+```
+
+## 🛠️ Tech stack
+
+- **Backend**: Python 3.11, FastAPI, SQLAlchemy (async, aiosqlite), Qdrant,
+  OpenAI SDK (DeepSeek), httpx, requests, BeautifulSoup, Playwright.
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, framer-motion.
+- **Widget**: vanilla JavaScript (no dependencies).
+- **Infra**: Docker Compose, nginx (reverse proxy + TLS).
+
+## 🚀 Quick start
 
 ### Prerequisites
+
 - Docker & Docker Compose
-- Jina AI API key
+- [Jina AI](https://jina.ai) API key (embeddings)
+- [DeepSeek](https://platform.deepseek.com) API key (LLM)
 
-### 1. Clone & Setup
+### 1. Configure
+
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/seomozg/iSdelal.git
 cd iSdelal
-
-# Copy environment template
 cp backend/.env.example backend/.env
-
-# Edit .env with your keys
-# JINA_API_KEY=jina_your-key-here
+# edit backend/.env: JINA_API_KEY, DEEPSEEK_API_KEY
 ```
 
-### 2. Launch Backend Services
+### 2. Run
+
 ```bash
 docker compose up -d --build
-
-# Check status
 docker compose ps
-
-# Health check
-curl http://localhost:8000/health
+curl http://localhost:8000/health   # {"status":"ok"}
 ```
 
-### 3. Access the Admin Interface
-
-#### 🔧 Admin Dashboard
-After launching the services, access the following in your browser:
-
-- **🔧 Admin Dashboard**: `http://localhost:8000/frontend/`
-  - Manage content ingestion processes
-  - Monitor running tasks and view logs
-  - Browse Qdrant collections and statistics
-  - Generate embeddable chat widget code
-
-- **📖 API Documentation**: `http://localhost:8000/docs`
-- **💚 Health Check**: `http://localhost:8000/health`
-
----
-
-## 🔌 API Endpoints
-
-All endpoints are open access without authentication.
-
-### Health Check
-```bash
-GET /health
-# Response: {"status": "ok"}
-```
-
-### Collections Management
-```bash
-GET /collections
-# List all available collections
-
-GET /collections/{name}
-# Get collection statistics
-```
-
-### Content Ingestion
-**Авто-краулинг сайта (один URL):**
-```bash
-POST /ingest
-Content-Type: application/json
-
-{
-  "url": "https://example.com",
-  "collection": "example_com"
-}
-```
-
-### Recent Ingestion Jobs
-```bash
-GET /ingest/jobs?limit=10
-# Returns recent jobs with status and collection info
-```
-
-### AI Chat
-```bash
-POST /chat
-Content-Type: application/json
-
-{
-  "question": "What is this website about?",
-  "collection": "example_site"
-}
-
-# Response:
-{
-  "answer": "Based on the website content...",
-  "status": "ready"
-}
-```
-
-
-## 🧪 Testing
-
-Run the test suite:
+### 3. Frontend (development)
 
 ```bash
-# In container
-docker compose exec backend pytest tests/test_api.py -v
-
-# Or locally
-cd backend
-pip install -r requirements.txt
-pytest tests/test_api.py -v
+cd click-ai-widget
+npm install
+npm run dev          # http://localhost:8080
 ```
-
-**Test Coverage:**
-- ✅ Health check endpoints
-- ✅ Content ingestion & Qdrant indexing
-- ✅ AI chat with RAG
-- ✅ Error handling
 
 ## ⚙️ Configuration
 
-Copy `.env.example` to `.env` and configure:
+Key variables in `backend/.env` (full list in `backend/.env.example`):
 
-```bash
-# Required
-JINA_API_KEY=jina_your-key-here
+| Variable | Description |
+|----------|-------------|
+| `JINA_API_KEY` | Jina AI key (embeddings) |
+| `DEEPSEEK_API_KEY` | DeepSeek key (LLM) |
+| `QDRANT_HOST` / `QDRANT_PORT` | Qdrant address (default `qdrant` / `6333`) |
+| `EMBED_MODEL` | embedding model (default `jina-embeddings-v2-base-en`) |
+| `RAG_TOP_K` | context snippets per answer (default `3`) |
+| `CRAWL_MAX_PAGES` | max pages per crawl (default `50`) |
+| `USE_PLAYWRIGHT` | render JS before crawling (default `true`) |
+| `TG_BOT_TOKEN` | enables the Telegram bot (empty = disabled) |
+| `TG_DAILY_LIMIT` | bot messages per chat per day (default `50`, `0` = unlimited) |
 
-# Optional (defaults shown)
-QDRANT_HOST=qdrant
-QDRANT_PORT=6333
-EMBED_MODEL=jina-embeddings-v2-base-en
-RAG_TOP_K=5
-CRAWL_MAX_PAGES=50
-CRAWL_TIMEOUT=30
-USE_PLAYWRIGHT=true
-```
+## 🔌 API
 
+Public endpoints:
 
->>>>>>> widget-code-fixes
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/health` | health check |
+| `POST` | `/ingest` | start indexing (`url` or `urls` + `collection`) |
+| `GET` | `/ingest/status/{job_id}` | job status |
+| `GET` | `/ingest/jobs` | recent jobs |
+| `POST` | `/chat` | non-streaming RAG answer |
+| `POST` | `/chat/stream` | streaming RAG answer (SSE) |
+| `GET` | `/api/bot/info` | Telegram bot availability + username |
 
-=======
->>>>>>> widget-code-fixes
+Authenticated (Bearer JWT): `/auth/*`, `/collections`, `/api/sites*`,
+`/api/user/*`, `/api/tariffs`, `/api/payments/*`. Interactive docs at `/docs`.
 
-## 🔐 Security
+## 💬 Web widget
 
-- ✅ Open access API (no authentication required)
-- ✅ Environment variables never committed (.env in .gitignore)
-- ✅ CORS protection configured
-- ✅ No sensitive data in repository
+Embed on any page:
 
-## 🔥 Production Deployment on Hosting/Server
-
-### Prerequisites
-- VPS/Dedicated server (2GB+ RAM, 20GB+ SSD)
-- Domain name (yourdomain.com)
-- SSL certificate (Let's Encrypt)
-- Docker & Docker Compose installed
-
-### 1. Server Preparation
-```bash
-# Update system
-sudo apt update && sudo apt upgrade -y
-
-# Install Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-sudo usermod -aG docker $USER
-
-# Install Docker Compose
-sudo curl -L "https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-
-# Install Nginx
-sudo apt install nginx -y
-
-# Install Certbot (SSL)
-sudo apt install certbot python3-certbot-nginx -y
-```
-
-### 2. Project Deployment
-```bash
-# Create app directory
-sudo mkdir -p /var/www/isdelal
-chmod 755 /var/www/isdelal
-
-# Clone project
-git clone <your-repo-url> /var/www/isdelal
-cd /var/www/isdelal
-
-# Setup environment
-cp backend/.env.example backend/.env
-nano backend/.env  # Edit with your API keys
-```
-
-### 3. Nginx + SSL Configuration
-```bash
-# Create nginx config
-sudo nano /etc/nginx/sites-available/isdelal
-
-# Paste this config (replace yourdomain.com):
-server {
-    listen 80;
-    server_name yourdomain.com www.yourdomain.com;
-
-    # Redirect HTTP to HTTPS
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name yourdomain.com www.yourdomain.com;
-
-    # SSL certificates (generated by certbot)
-    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
-
-    # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-
-    # Static files from Nginx (optional, better performance)
-    location /frontend/static/ {
-        alias /var/www/isdelal/frontend/;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    location /widget/ {
-        alias /var/www/isdelal/widget/;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    # Forward everything else to backend
-    location / {
-        proxy_pass http://localhost:8000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-
-        # CORS for widget embedding
-        add_header 'Access-Control-Allow-Origin' '*' always;
-        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
-        add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type, X-API-Key' always;
-
-        if ($request_method = 'OPTIONS') {
-            return 204;
-        }
-    }
-}
-
-# Enable site
-sudo ln -s /etc/nginx/sites-available/isdelal /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-### 4. SSL Certificate Setup
-```bash
-# Get SSL certificate
-sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
-
-# Test renewal
-sudo certbot renew --dry-run
-
-# Auto-renewal (runs monthly)
-sudo systemctl enable certbot.timer
-```
-
-### 5. Environment Configuration
-```bash
-# Edit production .env
-nano backend/.env
-
-# Production settings:
-QDRANT_HOST=qdrant
-QDRANT_PORT=6333
-ALLOWED_ORIGINS=https://yourdomain.com
-
-# Performance settings
-CRAWL_MAX_PAGES=100
-RAG_TOP_K=10
-```
-
-### 6. Docker Production Setup
-```bash
-# Create production docker-compose.override.yml
-nano docker-compose.prod.yml
-
-# Production config (replace /your-subpath with actual subpath like /iSdelal):
-version: '3.8'
-
-services:
-  backend:
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --root-path /your-subpath
-    environment:
-      # Additional production env vars
-      - ENVIRONMENT=production
-      - ALLOW_ALL_ORIGINS=false  # Use ALLOWED_ORIGINS instead
-
-  qdrant:
-    volumes:
-      - /var/lib/qdrant:/qdrant/storage:rw  # Persistent data on host
-```
-
-### 7. Launch Production Services
-```bash
-# Start services
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-
-# Check status
-docker compose ps
-curl https://yourdomain.com/health
-
-# Monitor logs
-docker compose logs -f backend
-```
-
-### 8. DNS Configuration
-```bash
-# Point your domain to server IP:
-# A Record: yourdomain.com -> SERVER_IP
-# CNAME: www.yourdomain.com -> yourdomain.com
-```
-
-### 9. Backup & Monitoring
-```bash
-# Qdrant backup script
-nano /usr/local/bin/backup-qdrant.sh
-#!/bin/bash
-DATE=$(date +%Y%m%d_%H%M%S)
-docker compose exec qdrant qdrant-backup create --name "backup_$DATE"
-echo "Backup created: backup_$DATE"
-
-# Schedule backups (crontab)
-0 2 * * * /usr/local/bin/backup-qdrant.sh
-
-# Monitor disk usage
-df -h /var/lib
-docker system df
-
-# View live logs
-docker compose logs --tail=100 -f backend
-```
-
-### 10. Access Your Production System
-
-- **🔧 Admin Interface**: `https://yourdomain.com/frontend/`
-- **📊 API Documentation**: `https://yourdomain.com/docs`
-- **💬 Widget Endpoint**: `https://yourdomain.com/widget/widget.js`
-
-### Widget Production Code:
 ```html
 <script>
 window.AIWidgetConfig = {
-  apiBase: 'https://yourdomain.com',
-  collection: 'your_collection_name',
-  apiKey: 'your-production-api-key',
+  apiBase: 'https://your-host',
+  collection: 'your_collection',
   title: 'AI Assistant',
   welcomeMessage: 'How can I help you?'
 };
 </script>
-<script src="https://yourdomain.com/widget/widget.js"></script>
+<script src="https://your-host/widget/widget.js"></script>
 ```
 
-## 🤖 Telegram Bot
+## 🤖 Telegram bot
 
-The backend can run a Telegram bot that answers from a Qdrant collection — the same
-RAG pipeline as the website widget (embed → search → DeepSeek stream).
+1. Get a token from [@BotFather](https://t.me/BotFather), set `TG_BOT_TOKEN` in `.env`.
+2. Restart the backend (`docker compose up -d --force-recreate backend`).
+3. Open a deep link to bind a chat to a collection:
 
-### Setup
+```
+https://t.me/<bot_username>?start=<collection_name>
+```
 
-1. Get a token from [@BotFather](https://t.me/BotFather) and put it into `backend/.env`:
-   ```
-   TG_BOT_TOKEN=123456:ABC-your-token
-   ```
-2. Restart the backend (`docker compose up -d --force-recreate backend` — `env_file`
-   values are read at container creation time).
-3. Open the deep link to bind your chat to a collection:
-   ```
-   https://t.me/<bot_username>?start=<collection_name>
-   ```
-   Example: `https://t.me/isdelal_bot?start=padel_russia_online`
+Commands: `/start <collection>`, `/collection <collection>`, `/help`.
 
-> ⚠️ Telegram ignores arbitrary query params — `t.me/<bot>?collection=...` does **not**
-> work. Only `?start=<payload>` is passed to the bot (as `/start <payload>`).
+> ⚠️ Telegram ignores arbitrary query params — `t.me/<bot>?collection=...` does
+> **not** work. Only `?start=<payload>` is passed to the bot (as `/start <payload>`).
 
-### Commands
+## 🧪 Testing
 
-| Command | Description |
-|---------|-------------|
-| `/start <collection>` | Bind the chat to a collection (validates it exists in Qdrant) |
-| `/collection <collection>` | Switch the collection |
-| `/help` | Show help |
-
-Plain text messages are answered from the bound collection with streamed edits
-(`editMessageText`), a typing indicator, and per-site usage tracking in the dashboard.
-
-### Bot settings (`.env`)
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `TG_BOT_TOKEN` | — (bot disabled) | Bot API token from @BotFather |
-| `TG_DAILY_LIMIT` | `50` | Messages per chat per day (`0` = unlimited) |
-| `TG_MAX_CONCURRENT` | `4` | Max parallel answers |
-| `TG_ANSWER_TIMEOUT` | `120` | Answer timeout, seconds |
-
-Notes: works in private chats only; long polling assumes a single uvicorn worker
-(default) — move to webhooks if you scale horizontally; chat→collection bindings are
-stored in the `telegram_chats` table (created automatically on startup).
-
-## 🚨 Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| `docker compose up` fails | Ensure Docker Desktop is running |
-| API not responding | Check `docker compose logs backend` |
-| Hot reload not working | Restart with `docker compose restart backend` |
-| Qdrant data lost | Use `docker compose down` (not `down -v`) to preserve data |
-| API key errors | Verify `DEEPSEEK_API_KEY` and `JINA_API_KEY` in `.env` |
-| SSL cert expired | Run `sudo certbot renew` |
-| Domain not working | Check DNS propagation (may take 24-48h) |
-| Service crashes | Check system resources: `htop` , free memory `free -h` |
-
-**Full Diagnostics:**
 ```bash
-docker compose ps              # Container status
-docker compose logs backend    # Backend logs
-docker compose logs qdrant     # Qdrant logs
-curl http://localhost:8000/health  # API health check
+docker compose exec backend pytest tests/ -v
+# or locally:
+cd backend && pip install -r requirements.txt && pytest tests/ -v
 ```
+
+The backend suite covers: health, auth, chat/RAG flow, ingest, Qdrant
+connection, and the Telegram bot (routing, bindings, streaming, limits).
 
 ## 📄 License
 
-MIT License - see repository for details.
+MIT — see [LICENSE](LICENSE).
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request
-
-## 📞 Support
-
-- 📖 **Documentation**: Check the `/docs` folder
-- 🐛 **Issues**: Open a GitHub issue
-- 💬 **Discussions**: Use GitHub Discussions for questions
-docker compose logs qdrant     # Qdrant logs
-curl http://localhost:8000/health  # API health check
-```
-
-## 📄 License
-
-MIT License - see repository for details.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request
-
-## 📞 Support
-
-- 📖 **Documentation**: Check the `/docs` folder
-- 🐛 **Issues**: Open a GitHub issue
-- 💬 **Discussions**: Use GitHub Discussions for questions
