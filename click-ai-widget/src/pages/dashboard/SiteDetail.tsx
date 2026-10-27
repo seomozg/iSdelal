@@ -1,8 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { sites as sitesApi, collections, bot } from "@/lib/api";
+import { sites as sitesApi, collections, bot, documents, SiteDocument } from "@/lib/api";
 import { tgStartLink } from "@/lib/telegram";
-import { ArrowLeft, Copy, Check, Code2, Settings, Send, ExternalLink } from "lucide-react";
+import {
+  ArrowLeft, Copy, Check, Code2, Settings, Send, ExternalLink,
+  FileText, FileSpreadsheet, Loader2, Trash2, Link2, Upload,
+} from "lucide-react";
+
 
 interface Site {
   id: number;
@@ -16,6 +20,12 @@ interface Site {
   created_at: string;
 }
 
+/** Icon for a document row based on its source type. */
+function DocIcon({ type }: { type: string }) {
+  const Icon = type === "xlsx" || type === "google_sheet" ? FileSpreadsheet : FileText;
+  return <Icon className="w-4 h-4 text-primary shrink-0" />;
+}
+
 export default function SiteDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -26,6 +36,14 @@ export default function SiteDetail() {
   const [tgCopied, setTgCopied] = useState(false);
   const [qdrantPoints, setQdrantPoints] = useState(0);
   const [botInfo, setBotInfo] = useState<{ enabled: boolean; username: string | null } | null>(null);
+
+  // Document (knowledge base) state
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [docs, setDocs] = useState<SiteDocument[]>([]);
+  const [docUploading, setDocUploading] = useState(false);
+  const [docError, setDocError] = useState("");
+  const [gUrl, setGUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const [config, setConfig] = useState({
     title: "AI Assistant",
@@ -55,6 +73,28 @@ export default function SiteDetail() {
   useEffect(() => {
     bot.info().then(setBotInfo).catch(() => setBotInfo(null));
   }, []);
+
+  function loadDocs() {
+    if (!id) return;
+    documents
+      .list(parseInt(id))
+      .then(setDocs)
+      .catch(() => setDocError("Не удалось загрузить список документов"));
+  }
+
+  useEffect(() => {
+    loadDocs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // Poll the list while some document is still being processed.
+  const hasProcessing = docs.some((d) => d.status === "processing");
+  useEffect(() => {
+    if (!hasProcessing) return;
+    const timer = setInterval(loadDocs, 3000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasProcessing]);
 
   async function saveWidgetConfig() {
     if (!id) return;
@@ -98,6 +138,49 @@ window.AIWidgetConfig = {
     navigator.clipboard.writeText(getTgLink());
     setTgCopied(true);
     setTimeout(() => setTgCopied(false), 2000);
+  }
+
+  async function handleUploadFile() {
+    if (!id || !selectedFile) return;
+    setDocUploading(true);
+    setDocError("");
+    try {
+      await documents.upload(parseInt(id), selectedFile);
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      loadDocs();
+    } catch (e) {
+      setDocError(e instanceof Error ? e.message : "Ошибка загрузки файла");
+    } finally {
+      setDocUploading(false);
+    }
+  }
+
+  async function handleAddUrl() {
+    if (!id || !gUrl.trim()) return;
+    setDocUploading(true);
+    setDocError("");
+    try {
+      await documents.addUrl(parseInt(id), gUrl.trim());
+      setGUrl("");
+      loadDocs();
+    } catch (e) {
+      setDocError(e instanceof Error ? e.message : "Ошибка добавления ссылки");
+    } finally {
+      setDocUploading(false);
+    }
+  }
+
+  async function handleDeleteDoc(doc: SiteDocument) {
+    if (!id) return;
+    if (!confirm(`Удалить документ «${doc.name}» из базы знаний?`)) return;
+    setDocError("");
+    try {
+      await documents.delete(parseInt(id), doc.id);
+      loadDocs();
+    } catch (e) {
+      setDocError(e instanceof Error ? e.message : "Ошибка удаления");
+    }
   }
 
   if (loading) {
@@ -146,6 +229,94 @@ window.AIWidgetConfig = {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Documents (knowledge base) */}
+          <div className="bg-card rounded-xl shadow-sm border border-border p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                <FileText className="w-5 h-5" /> Документы
+              </h2>
+              <span className="text-xs text-muted-foreground">{docs.length} шт.</span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              PDF, Excel, Google Docs и Google Sheets попадают в базу знаний проекта —
+              ответы ИИ учитывают их наравне с сайтом.
+            </p>
+
+            <div className="flex gap-2 mb-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.xlsx"
+                onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+                className="flex-1 text-xs text-muted-foreground file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-primary/10 file:text-primary file:text-xs file:cursor-pointer"
+              />
+              <button
+                onClick={handleUploadFile}
+                disabled={docUploading || !selectedFile}
+                className="flex items-center gap-1 px-3 py-2 bg-primary text-primary-foreground text-xs rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              >
+                {docUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                Загрузить
+              </button>
+            </div>
+
+            <div className="flex gap-2 mb-4">
+              <input
+                type="url"
+                value={gUrl}
+                onChange={(e) => setGUrl(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddUrl()}
+                placeholder="https://docs.google.com/..."
+                className="flex-1 px-3 py-2 border border-border rounded-lg text-xs bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <button
+                onClick={handleAddUrl}
+                disabled={docUploading || !gUrl.trim()}
+                className="flex items-center gap-1 px-3 py-2 bg-primary text-primary-foreground text-xs rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              >
+                <Link2 className="w-3 h-3" /> Добавить
+              </button>
+            </div>
+
+            {docError && (
+              <div className="mb-3 p-2 bg-red-500/10 text-red-400 rounded-lg text-xs">{docError}</div>
+            )}
+
+            {docs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Документов пока нет.</p>
+            ) : (
+              <div className="space-y-2">
+                {docs.map((d) => (
+                  <div
+                    key={d.id}
+                    className="flex items-center gap-3 p-2 rounded-lg border border-border bg-background/50"
+                  >
+                    <DocIcon type={d.source_type} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-foreground truncate" title={d.source_url || d.file_name || d.name}>
+                        {d.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {d.status === "completed" && `✓ ${d.chunk_count} фрагментов`}
+                        {d.status === "processing" && "⏳ обработка…"}
+                        {d.status === "failed" && (
+                          <span className="text-red-400" title={d.error || ""}>✕ ошибка</span>
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteDoc(d)}
+                      className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"
+                      title="Удалить документ"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Widget Code */}

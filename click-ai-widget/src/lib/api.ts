@@ -80,3 +80,50 @@ export const collections = {
   list: () => request<{ collections: { name: string }[] }>("/collections"),
   get: (name: string) => request<any>(`/collections/${name}`),
 };
+
+// Documents (client files indexed into a site's knowledge base)
+export interface SiteDocument {
+  id: number;
+  site_id: number;
+  name: string;
+  source_type: "pdf" | "xlsx" | "google_doc" | "google_sheet";
+  source_url: string | null;
+  file_name: string | null;
+  status: "processing" | "completed" | "failed";
+  error: string | null;
+  chunk_count: number;
+  created_at: string;
+}
+
+/** POST multipart/form-data (document endpoints accept `file` or `url` fields). */
+async function sendForm<T>(path: string, formData: FormData): Promise<T> {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  // No Content-Type here — the browser sets the multipart boundary itself.
+  const res = await fetch(`${API_BASE}${path}`, { method: "POST", headers, body: formData });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(error.detail || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export const documents = {
+  list: (siteId: number) => request<SiteDocument[]>(`/api/sites/${siteId}/documents`),
+  upload: (siteId: number, file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return sendForm<SiteDocument>(`/api/sites/${siteId}/documents`, fd);
+  },
+  addUrl: (siteId: number, url: string) => {
+    const fd = new FormData();
+    fd.append("url", url);
+    return sendForm<SiteDocument>(`/api/sites/${siteId}/documents`, fd);
+  },
+  delete: (siteId: number, documentId: number) =>
+    request<{ status: string; chunks_removed: number }>(
+      `/api/sites/${siteId}/documents/${documentId}`,
+      { method: "DELETE" },
+    ),
+};
