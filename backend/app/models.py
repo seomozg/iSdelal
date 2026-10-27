@@ -53,7 +53,12 @@ class Site(Base):
 
     user = relationship("User", back_populates="sites")
     usage_stats = relationship("UsageStats", back_populates="site", lazy="dynamic")
-    documents = relationship("Document", back_populates="site", lazy="dynamic")
+    documents = relationship(
+        "Document",
+        back_populates="site",
+        lazy="dynamic",
+        cascade="all, delete-orphan",  # deleting a site removes its documents too
+    )
 
 
 class UsageStats(Base):

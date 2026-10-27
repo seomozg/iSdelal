@@ -403,3 +403,12 @@ class TestDocumentApi:
         assert resp.status_code == 404
         assert _get_doc(alien_doc) is not None
 
+    def test_site_delete_cascades_documents(self, client, owner):
+        """Deleting a site must also delete its documents (NOT NULL on site_id)."""
+        headers, site_id = owner
+        doc_id = _add_doc(site_id, name="linked.pdf")
+
+        resp = client.delete(f"/api/sites/{site_id}", headers=headers)
+        assert resp.status_code == 200
+        assert _get_doc(doc_id) is None
+
