@@ -98,5 +98,27 @@ class PaymentResponse(BaseModel):
         from_attributes = True
 
 
+# ---------- Documents ----------
+class DocumentCreate(BaseModel):
+    """Add a Google Doc/Sheet by URL (file uploads use multipart form-data)."""
+    url: str
+
+
+class DocumentResponse(BaseModel):
+    id: int
+    site_id: int
+    name: str
+    source_type: str
+    source_url: Optional[str] = None
+    file_name: Optional[str] = None
+    status: str
+    error: Optional[str] = None
+    chunk_count: int = 0
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 # Update forward references
 TokenResponse.model_rebuild()

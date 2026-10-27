@@ -53,6 +53,7 @@ class Site(Base):
 
     user = relationship("User", back_populates="sites")
     usage_stats = relationship("UsageStats", back_populates="site", lazy="dynamic")
+    documents = relationship("Document", back_populates="site", lazy="dynamic")
 
 
 class UsageStats(Base):
@@ -111,3 +112,23 @@ class TelegramChat(Base):
     username = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Document(Base):
+    """A client document (PDF/XLSX/Google Doc/Sheet) indexed into a site's collection."""
+    __tablename__ = "documents"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    site_id = Column(Integer, ForeignKey("sites.id"), nullable=False)
+    name = Column(String, nullable=False)          # file name or Google Doc id
+    source_type = Column(String, nullable=False)   # pdf | xlsx | google_doc | google_sheet
+    source_url = Column(String, nullable=True)     # Google Doc/Sheet URL (for google_*)
+    file_name = Column(String, nullable=True)      # original file name (for uploads)
+    status = Column(String, default="processing")  # processing | completed | failed
+    error = Column(String, nullable=True)          # failure reason (for status="failed")
+    chunk_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    site = relationship("Site", back_populates="documents")
+
