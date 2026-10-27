@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Hero from "@/components/Hero";
 import TgBanner from "@/components/TgBanner";
+import DocsBanner from "@/components/DocsBanner";
 import ChatWidgetLoader from "@/components/ChatWidgetLoader";
 import HowItWorks from "@/components/HowItWorks";
 import WidgetCode from "@/components/WidgetCode";
@@ -83,6 +84,7 @@ const IndexContent = () => {
       <LanguageSwitcher />
       <Hero onSubmit={handleUrlSubmit} isLoading={isLoading} />
       <TgBanner />
+      <DocsBanner />
       <HowItWorks />
       <WidgetCode url={submittedUrl} isVisible={showWidgetCode} config={widgetConfig} collectionName={collectionName} />
       <WidgetConfig config={widgetConfig} onChange={setWidgetConfig} isVisible={showWidgetCode} />

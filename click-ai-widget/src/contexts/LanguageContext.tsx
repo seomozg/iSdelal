@@ -49,6 +49,13 @@ interface Translations {
     subtitle: string;
     cta: string;
   };
+  docsBanner: {
+    badge: string;
+    title: string;
+    subtitle: string;
+    cta: string;
+    formats: string[];
+  };
   faq: {
     title: string;
     subtitle: string;
@@ -140,6 +147,13 @@ const translations: Record<Language, Translations> = {
       subtitle: "Общайтесь с ИИ-ассистентом по контенту вашего сайта прямо в мессенджере — те же умные ответы, что и в виджете.",
       cta: "Открыть бота",
     },
+    docsBanner: {
+      badge: "Документы",
+      title: "База знаний — не только сайт",
+      subtitle: "Загружайте PDF, Excel и Google Docs/Sheets прямо в проект — ответы ИИ учитывают документы клиента наравне со страницами сайта.",
+      cta: "Попробовать",
+      formats: ["PDF", "Excel", "Google Docs", "Google Sheets"],
+    },
     footer: {
       description: "Умный ИИ-помощник для вашего сайта за считанные минуты.",
       product: "Продукт",
@@ -223,6 +237,13 @@ const translations: Record<Language, Translations> = {
       title: "Your AI agent — now in Telegram",
       subtitle: "Chat with the AI assistant about your website content right in your messenger — the same smart answers as in the widget.",
       cta: "Open the bot",
+    },
+    docsBanner: {
+      badge: "Documents",
+      title: "Knowledge base — not just the website",
+      subtitle: "Upload PDF, Excel and Google Docs/Sheets straight into a project — AI answers rely on the client's documents just like on site pages.",
+      cta: "Try it",
+      formats: ["PDF", "Excel", "Google Docs", "Google Sheets"],
     },
     footer: {
       description: "Smart AI assistant for your website in minutes.",
