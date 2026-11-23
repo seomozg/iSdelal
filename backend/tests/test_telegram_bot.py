@@ -293,6 +293,35 @@ class TestAnswerFlow:
         assert any(m == "sendChatAction" for m, _ in calls)
 
     @pytest.mark.asyncio
+    async def test_typing_shows_while_preparing_answer(
+        self, session_factory, rag_mocks, monkeypatch
+    ):
+        """«Печатает» видно ещё до ответа LLM — пока идут эмбеддинг и поиск."""
+        import time as _time
+
+        import app.telegram_bot as tb
+
+        calls = []
+        bot = make_bot(calls)
+        bot.session_factory = session_factory
+        await bot._set_binding(111, "padel_russia_online", None)
+
+        seen = {}
+
+        def slow_embed(texts):
+            _time.sleep(0.05)  # время, чтобы typing-задача отработала в loop
+            seen["typing_during_embed"] = any(m == "sendChatAction" for m, _ in calls)
+            return ([[0.1] * 8], 3)
+
+        monkeypatch.setattr(tb, "embed_texts", slow_embed)
+
+        await bot.handle_update(make_update("вопрос"))
+
+        assert seen.get("typing_during_embed") is True  # typing до/во время подготовки
+        assert bot._typing_tasks == {}  # индикатор погашен после ответа
+        assert bot._typing_stops == {}
+
+    @pytest.mark.asyncio
     async def test_llm_failure_sends_error_message(self, session_factory, rag_mocks, monkeypatch):
         import app.telegram_bot as tb
 

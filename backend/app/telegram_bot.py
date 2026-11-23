@@ -178,6 +178,9 @@ class TelegramBot:
         self._running = False
         self._tasks: set = set()
         self._answer_sem = asyncio.Semaphore(int(os.getenv("TG_MAX_CONCURRENT", "4")))
+        # Per-chat «печатает…» indicator: sendChatAction loop while an answer is prepared.
+        self._typing_stops: Dict[int, asyncio.Event] = {}
+        self._typing_tasks: Dict[int, asyncio.Task] = {}
 
     # ------------------------------------------------------------------ API
 
@@ -393,8 +396,14 @@ class TelegramBot:
         if not self.limiter.allow(chat_id):
             await self._send_text(chat_id, LIMIT_TEXT)
             return
-        async with self._answer_sem:
-            await self._answer(chat_id, question, collection)
+        # Show «печатает…» from the very first moment: while the bot searches
+        # context (embeddings + Qdrant) and waits for the first LLM token.
+        self._begin_typing(chat_id)
+        try:
+            async with self._answer_sem:
+                await self._answer(chat_id, question, collection)
+        finally:
+            await self._end_typing(chat_id)
 
     async def _answer(self, chat_id: int, question: str, collection: str) -> None:
         active = _get_collection_active_ingests(collection)
@@ -433,8 +442,7 @@ class TelegramBot:
         site: Optional[Site],
         jina_tokens: int,
     ) -> None:
-        stop_typing = asyncio.Event()
-        typing_task = asyncio.create_task(self._typing_loop(chat_id, stop_typing))
+        self._begin_typing(chat_id)  # no-op if already started in _handle_question
         usage: Dict[str, int] = {}
         full = ""
         shown = ""
@@ -488,16 +496,11 @@ class TelegramBot:
                     break
                 full += token
                 await push()
-        except asyncio.CancelledError:
-            stop_typing.set()
-            await asyncio.gather(typing_task, return_exceptions=True)
-            raise
         except Exception as exc:
             error = exc
             logger.exception("LLM stream failed (chat=%s)", chat_id)
         finally:
-            stop_typing.set()
-            await asyncio.gather(typing_task, return_exceptions=True)
+            await self._end_typing(chat_id)  # also runs on cancellation
 
         if not full:
             if error is not None:
@@ -522,6 +525,24 @@ class TelegramBot:
                 await self._send_text(chat_id, part)
 
         await self._record_usage(site, jina_tokens, usage)
+
+    def _begin_typing(self, chat_id: int) -> None:
+        """Start the «печатает…» indicator for this chat (idempotent)."""
+        if chat_id in self._typing_tasks:
+            return
+        stop = asyncio.Event()
+        task = asyncio.create_task(self._typing_loop(chat_id, stop))
+        self._typing_stops[chat_id] = stop
+        self._typing_tasks[chat_id] = task
+
+    async def _end_typing(self, chat_id: int) -> None:
+        """Stop the typing indicator if it is running for this chat (idempotent)."""
+        stop = self._typing_stops.pop(chat_id, None)
+        task = self._typing_tasks.pop(chat_id, None)
+        if stop is not None:
+            stop.set()
+        if task is not None:
+            await asyncio.gather(task, return_exceptions=True)
 
     async def _typing_loop(self, chat_id: int, stop: asyncio.Event) -> None:
         while not stop.is_set():

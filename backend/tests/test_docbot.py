@@ -234,6 +234,30 @@ class TestRouting:
         await b.handle_update(text_update("вопрос 2"))
         assert any("лимит" in t for t in sent_texts(calls))
 
+    @pytest.mark.asyncio
+    async def test_typing_shows_while_thinking(self, bot, rag_mocks, monkeypatch):
+        """«Печатает» видно с момента вопроса: пока идут поиск по документам и LLM."""
+        import time as _time
+
+        b, calls = bot
+        await store.set_binding(111, "col_docs")
+        monkeypatch.setattr("app.docbot.bot.qcoll.collection_points", lambda name: 5)
+
+        seen = {}
+
+        def slow_embed(texts):
+            _time.sleep(0.05)  # время, чтобы typing-задача отработала в loop
+            seen["typing_during_embed"] = any(m == "sendChatAction" for m, _ in calls)
+            return ([[0.1] * 8], 3)
+
+        monkeypatch.setattr("app.docbot.bot.embed_texts", slow_embed)
+
+        await b.handle_update(text_update("сколько стоит аренда?"))
+
+        assert seen.get("typing_during_embed") is True
+        assert b._typing_tasks == {}  # индикатор погашен после ответа
+        assert any("Ответ из документа" in t for t in sent_texts(calls))
+
 
 
 class TestCommands:
