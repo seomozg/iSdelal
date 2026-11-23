@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Документ-бот — база знаний из ваших документов в Telegram</title>
+  <meta name="description" content="Telegram-бот: загрузите PDF, Excel или Google-документ — и получите бота, который отвечает на вопросы клиентов и сотрудников только по вашим материалам. 24/7, без сайта и программиста." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="logo" href="#hero"><span class="logo-mark">🤖</span> Документ-бот</a>
+    <nav class="nav" aria-label="Основная навигация">
+      <a href="#how">Как работает</a>
+      <a href="#features">Возможности</a>
+      <a href="#commands">Команды</a>
+      <a href="#faq">Вопросы</a>
+    </nav>
+    <a class="btn btn-primary btn-sm" href="https://t.me/iManagerOfficialBot" target="_blank" rel="noopener">Демо-бот</a>
+  </div>
+</header>
+
+<main>
+
+  <!-- ============================== HERO ============================== -->
+  <section class="hero" id="hero">
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">AI-ассистент на ваших документах</p>
+        <h1>База знаний из ваших документов — в Telegram</h1>
+        <p class="lead">
+          Загрузите PDF, Excel или ссылку на Google&nbsp;Docs — бот проиндексирует их
+          и отвечает на вопросы клиентов и сотрудников <strong>только по вашим
+          материалам</strong>. Без сайта, без программиста, круглосуточно.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="https://t.me/iManagerOfficialBot" target="_blank" rel="noopener">Открыть демо-бота</a>
+          <a class="btn btn-ghost" href="#how">Как это работает ↓</a>
+        </div>
+        <ul class="hero-checks">
+          <li>Ответы строятся из ваших документов, без выдумок</li>
+          <li>Статус «печатает…» и живая печать ответа</li>
+          <li>Загрузка и управление — прямо в чате</li>
+        </ul>
+      </div>
+
+      <div class="chat-card" role="img" aria-label="Пример диалога: пользователь задаёт вопрос, бот отвечает по документу">
+        <div class="chat-head">
+          <span class="chat-avatar">🤖</span>
+          <span class="chat-title">Документ-бот</span>
+          <span class="chat-status">в сети</span>
+        </div>
+        <div class="chat-body">
+          <div class="bubble bubble-in">Здравствуйте! Какие условия возврата товара?</div>
+          <div class="bubble bubble-out">Возврат возможен в течение 14&nbsp;дней с момента получения, при сохранении товарного вида и чека.</div>
+          <div class="bubble bubble-in">А в какой срок доставляете заказы?</div>
+          <div class="bubble bubble-typing" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div class="bubble bubble-out">Доставка по Москве — 1–2&nbsp;дня, в другие города — от 3&nbsp;до 7&nbsp;дней.</div>
+        </div>
+        <div class="chat-caption">Ответы взяты из загруженного PDF-документа</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== HOW IT WORKS ============================== -->
+  <section class="section" id="how">
+    <div class="container">
+      <h2>Как это работает</h2>
+      <p class="section-sub">Пять шагов от файла до готового ответа</p>
+
+      <ol class="steps">
+        <li class="step">
+          <span class="step-num">1</span>
+          <span class="step-ico">💬</span>
+          <h3>Создайте базу знаний</h3>
+          <p>Команда <code>/new имя</code> создаёт изолированную коллекцию и подключает текущий чат. Баз может быть несколько — под разные задачи.</p>
+        </li>
+        <li class="step">
+          <span class="step-num">2</span>
+          <span class="step-ico">📎</span>
+          <h3>Отправьте документы</h3>
+          <p>PDF или Excel до 10&nbsp;МБ файлом прямо в чат — либо публичная ссылка на Google&nbsp;Docs/Sheets. Статус виден в <code>/docs</code>.</p>
+        </li>
+        <li class="step">
+          <span class="step-num">3</span>
+          <span class="step-ico">⚙️</span>
+          <h3>Бот проиндексирует</h3>
+          <p>Документ нарезается на фрагменты, превращается в вектора (Jina) и сохраняется в базу Qdrant. Обработка идёт в фоне.</p>
+        </li>
+        <li class="step">
+          <span class="step-num">4</span>
+          <span class="step-ico">❓</span>
+          <h3>Задайте вопрос</h3>
+          <p>Просто напишите сообщение: бот сразу покажет «печатает…» и начнёт подбирать ответ по вашей базе.</p>
+        </li>
+        <li class="step">
+          <span class="step-num">5</span>
+          <span class="step-ico">💡</span>
+          <h3>Получите ответ</h3>
+          <p>Найденные фрагменты превращаются в ответ, который печатается в чате по мере генерации. Фактов вне документов в ответе не будет.</p>
+        </li>
+      </ol>
+
+      <div class="pipeline" aria-label="Конвейер обработки">
+        <span class="pipe-chip">📄 Документы</span><span class="pipe-arrow">→</span>
+        <span class="pipe-chip">✂️ Нарезка</span><span class="pipe-arrow">→</span>
+        <span class="pipe-chip">🧮 Эмбеддинги&nbsp;Jina</span><span class="pipe-arrow">→</span>
+        <span class="pipe-chip">🗄 Поиск&nbsp;Qdrant</span><span class="pipe-arrow">→</span>
+        <span class="pipe-chip">🧠 LLM&nbsp;DeepSeek</span><span class="pipe-arrow">→</span>
+        <span class="pipe-chip">💬 Ответ в чат</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== FEATURES ============================== -->
+  <section class="section section-alt" id="features">
+    <div class="container">
+      <h2>Возможности</h2>
+      <p class="section-sub">Всё, что нужно рабочей базе знаний — уже внутри</p>
+
+      <div class="grid cards">
+        <article class="card">
+          <span class="card-ico">📄</span>
+          <h3>Понимает документы</h3>
+          <p>PDF и Excel (XLSX) до 10&nbsp;МБ, а также Google&nbsp;Docs и Google&nbsp;Sheets по публичной ссылке.</p>
+        </article>
+        <article class="card">
+          <span class="card-ico">🔍</span>
+          <h3>Ответы по фактам</h3>
+          <p>RAG-конвейер: ответ строится только из найденных фрагментов вашей базы — без домыслов.</p>
+        </article>
+        <article class="card">
+          <span class="card-ico">⚡</span>
+          <h3>Живые ответы</h3>
+          <p>Индикатор «печатает…» с первой секунды и потоковая печать ответа — пользователь видит работу бота.</p>
+        </article>
+        <article class="card">
+          <span class="card-ico">🗂</span>
+          <h3>Несколько баз</h3>
+          <p><code>/collections</code> покажет ваши коллекции, <code>/use</code> переключит нужную за секунду.</p>
+        </article>
+        <article class="card">
+          <span class="card-ico">🧹</span>
+          <h3>Управление без админки</h3>
+          <p><code>/docs</code> — список со статусами, <code>/del&nbsp;N</code> — удалить документ вместе с его фрагментами.</p>
+        </article>
+        <article class="card">
+          <span class="card-ico">🔗</span>
+          <h3>Подключение по ссылке</h3>
+          <p>Deep-link <code>t.me/бот?start=коллекция</code> привязывает нужный чат или канал команды.</p>
+        </article>
+        <article class="card">
+          <span class="card-ico">🔒</span>
+          <h3>Изоляция</h3>
+          <p>В списке <code>/collections</code> — только ваши коллекции; чаты и базы разных задач не пересекаются.</p>
+        </article>
+        <article class="card">
+          <span class="card-ico">📊</span>
+          <h3>Прозрачные статусы</h3>
+          <p>«Обработка → готово (N фрагментов)» или ошибка с причиной — видно сразу в списке документов.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============================== COMMANDS ============================== -->
+  <section class="section" id="commands">
+    <div class="container">
+      <h2>Всё управление — командами в чате</h2>
+      <p class="section-sub">Никаких панелей и настроек: бот настраивается там же, где с ним общаются</p>
+
+      <div class="table-wrap">
+        <table class="cmds">
+          <thead>
+            <tr><th>Команда</th><th>Что делает</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>/new &lt;имя&gt;</code></td><td>Создать базу знаний и подключить чат</td></tr>
+            <tr><td><code>/collections</code></td><td>Список ваших коллекций</td></tr>
+            <tr><td><code>/use &lt;имя&gt;</code></td><td>Переключиться на другую базу</td></tr>
+            <tr><td><code>/docs</code></td><td>Документы и их статусы</td></tr>
+            <tr><td><code>/del &lt;номер&gt;</code></td><td>Удалить документ и его фрагменты</td></tr>
+            <tr><td><code>/add &lt;ссылка&gt;</code></td><td>Добавить Google Docs/Sheets по ссылке</td></tr>
+            <tr><td><code>/start &lt;коллекция&gt;</code></td><td>Привязать чат по ссылке-приглашению</td></tr>
+            <tr><td><code>/help</code></td><td>Справка по командам</td></tr>
+            <tr><td>Любое сообщение</td><td>Вопрос по документам — готовый ответ</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== USE CASES ============================== -->
+  <section class="section section-alt" id="usecases">
+    <div class="container">
+      <h2>Для кого</h2>
+      <p class="section-sub">Где база знаний в Telegram окупается сразу</p>
+
+      <div class="grid usecases">
+        <article class="card">
+          <span class="card-ico">🛎</span>
+          <h3>Поддержка клиентов</h3>
+          <p>Вопросы об условиях, доставке, возвратах — мгновенно и без выдуманных ответов.</p>
+        </article>
+        <article class="card">
+          <span class="card-ico">💼</span>
+          <h3>Продажи и заявки</h3>
+          <p>Коммерческие условия и ответы на возражения всегда под рукой у менеджера.</p>
+        </article>
+        <article class="card">
+          <span class="card-ico">👥</span>
+          <h3>HR и онбординг</h3>
+          <p>Регламенты, права доступа, чек-листы новичка — в одном чате, а не в папках.</p>
+        </article>
+        <article class="card">
+          <span class="card-ico">📚</span>
+          <h3>Внутренняя база</h3>
+          <p>Инструкции, политики, обучение: поиск по смыслу, а не по названию файла.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== FAQ ============================== -->
+  <section class="section" id="faq">
+    <div class="container container-narrow">
+      <h2>Частые вопросы</h2>
+      <p class="section-sub">Коротко о главном</p>
+
+      <details class="faq-item" open>
+        <summary>Нужен ли сайт или программист?</summary>
+        <p>Нет. Бот живёт сам по себе: токен от @BotFather и один <code>docker compose up</code> — дальше всё настройки только командами в чате.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Откуда берутся ответы?</summary>
+        <p>Из ваших документов: бот находит фрагменты по смыслу вопроса и строит ответ строго по ним. Если информации нет — честно ответит, что не нашёл.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Что с приватностью документов?</summary>
+        <p>Документы индексируются в вашей векторной базе (Qdrant) на вашем сервере. В модель уходят только релевантные фрагменты конкретного вопроса — не вся база.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Какие форматы и лимиты?</summary>
+        <p>PDF и XLSX до 10&nbsp;МБ (до 200 фрагментов на документ), Google&nbsp;Docs/Sheets — по публичной ссылке «Все, у кого есть ссылка».</p>
+      </details>
+      <details class="faq-item">
+        <summary>Можно несколько баз знаний?</summary>
+        <p>Да: <code>/new</code> создаёт новые коллекции, <code>/use</code> переключает между ними, у каждой — свои документы и статусы.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- ============================== CTA ============================== -->
+  <section class="section" id="cta">
+    <div class="container">
+      <div class="cta-box">
+        <h2>Проверьте на своих документах</h2>
+        <p>Демо-бот уже онлайн: создайте базу, отправьте PDF и задайте вопрос — займёт пару минут.</p>
+        <div class="hero-actions">
+          <a class="btn btn-light" href="https://t.me/iManagerOfficialBot" target="_blank" rel="noopener">Открыть демо-бота</a>
+          <a class="btn btn-outline-light" href="https://site-agent.online" target="_blank" rel="noopener">Другие продукты →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <span class="footer-brand"><span class="logo-mark">🤖</span> Документ-бот — ответы по вашим документам в Telegram</span>
+    <nav class="footer-nav" aria-label="Навигация в подвале">
+      <a href="#how">Как работает</a>
+      <a href="#features">Возможности</a>
+      <a href="https://t.me/iManagerOfficialBot" target="_blank" rel="noopener">Демо-бот</a>
+      <a href="https://site-agent.online" target="_blank" rel="noopener">Продукт</a>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>
+
