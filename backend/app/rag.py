@@ -72,12 +72,18 @@ def call_llm_with_context(user_question: str, context_snippets: list):
     return {"answer": answer, "usage_total_tokens": usage_total_tokens}
 
 
-def call_llm_stream(user_question: str, context_snippets: list, usage: dict | None = None):
+def call_llm_stream(
+    user_question: str,
+    context_snippets: list,
+    usage: dict | None = None,
+    system_prompt: str | None = None,
+):
     """
     Stream tokens from DeepSeek LLM one by one.
     Returns a generator that yields token strings.
     If `usage` dict is provided, it is filled with total_tokens from the stream
     (via stream_options.include_usage; silently falls back if unsupported).
+    `system_prompt` overrides the default system message (website assistant).
     """
     prompt_parts = ["You are a website assistant. Use only the provided context:"]
     for s in context_snippets:
@@ -90,7 +96,7 @@ def call_llm_stream(user_question: str, context_snippets: list, usage: dict | No
     create_kwargs = dict(
         model="deepseek-chat",
         messages=[
-            {"role": "system", "content": "You are a helpful website assistant."},
+            {"role": "system", "content": system_prompt or "You are a helpful website assistant."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.2,

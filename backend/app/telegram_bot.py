@@ -160,6 +160,7 @@ class TelegramBot:
         session_factory: Optional[Callable[..., Any]] = None,
         http: Optional[httpx.AsyncClient] = None,
         poll_timeout: int = 50,
+        system_prompt: Optional[str] = None,
     ):
         self.token = token
         self.api_root = f"{API_BASE}/bot{token}"
@@ -167,6 +168,8 @@ class TelegramBot:
         self.client = http or httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=10.0))
         self._owns_client = http is None
         self.poll_timeout = poll_timeout
+        # System message for streamed answers (None -> default website assistant).
+        self.system_prompt = system_prompt
         if daily_limit is None:
             daily_limit = int(os.getenv("TG_DAILY_LIMIT", "50"))
         self.limiter = DailyLimiter(daily_limit)
@@ -467,7 +470,9 @@ class TelegramBot:
 
         try:
             deadline = time.monotonic() + float(os.getenv("TG_ANSWER_TIMEOUT", "120"))
-            gen = call_llm_stream(question, snippets, usage=usage)
+            gen = call_llm_stream(
+                question, snippets, usage=usage, system_prompt=self.system_prompt
+            )
             while True:
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:

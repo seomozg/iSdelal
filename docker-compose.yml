@@ -37,5 +37,22 @@ services:
       retries: 3
       start_period: 40s
 
+  # Standalone document bot: manage collections/documents, answer questions.
+  # Same image as backend, but runs `python -m app.docbot` (long polling, no HTTP).
+  docbot:
+    build: ./backend
+    container_name: rag-docbot
+    command: python -m app.docbot
+    env_file:
+      - ./backend/.env        # shared: QDRANT_*, JINA, DEEPSEEK, EMBED_MODEL, limits
+      - ./backend/.env.docbot  # override: TG_BOT_TOKEN for this bot
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./data/docbot.db
+    depends_on:
+      - qdrant
+    volumes:
+      - ./backend/data:/app/data
+    restart: unless-stopped
+
 volumes:
   qdrant_storage:
