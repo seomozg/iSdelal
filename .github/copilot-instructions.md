@@ -18,6 +18,7 @@ dashboard) + a **Telegram bot** that reuses the chat pipeline + a standalone
 - `backend/tests/` — pytest suite (API + bot).
 - `widget/widget.js` — calls `/chat/stream`, reads `window.AIWidgetConfig`.
 - `click-ai-widget/src` — React SPA (landing `pages/Index.tsx`, dashboard `pages/dashboard/`).
+- `docbot-landing/` — static client landing for the document bot (`index.html` + `styles.css`, no build, no JS).
 - `docker-compose.yml` — `qdrant` + `backend` + `docbot` (same image, `python -m app.docbot`).
 
 ## Chat/answer pipeline (shared by widget, API and bot)

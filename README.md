@@ -64,6 +64,7 @@ backend/
   tests/               pytest
 widget/                встраиваемый виджет (widget.js, widget.css)
 click-ai-widget/       React SPA (Vite + TypeScript + Tailwind + shadcn/ui)
+docbot-landing/        лендинг документ-бота (статический HTML/CSS, без сборки)
 docker-compose.yml     сервисы qdrant + backend + docbot
 ```
 
