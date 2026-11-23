@@ -60,10 +60,11 @@ backend/
     auth.py            Google OAuth + JWT
     tracking.py        учёт использования и квоты
     telegram_bot.py    Telegram-бот (long polling)
+    docbot/            документ-бот (команды, файлы, ответы; python -m app.docbot)
   tests/               pytest
 widget/                встраиваемый виджет (widget.js, widget.css)
 click-ai-widget/       React SPA (Vite + TypeScript + Tailwind + shadcn/ui)
-docker-compose.yml     сервисы qdrant + backend
+docker-compose.yml     сервисы qdrant + backend + docbot
 ```
 
 ## 🛠️ Технологии
@@ -190,6 +191,47 @@ https://t.me/<bot_username>?start=<collection_name>
 > ⚠️ Telegram игнорирует произвольные query-параметры — `t.me/<bot>?collection=...`
 > **не** работает. Передаётся только `?start=<payload>` (как `/start <payload>`).
 
+## 🤖 Документ-бот
+
+Отдельный сервис **документ-бот**: загрузка/удаление документов и RAG-ответы
+по ним — в одном чате, без сайта и без переключателей режимов.
+Контейнер `docbot` использует тот же образ, что и `backend`, но запускает
+`python -m app.docbot` (long polling, без HTTP-сервера) и свою БД
+`backend/data/docbot.db`.
+
+### Настройка
+
+```bash
+# токен ОТДЕЛЬНОГО бота от @BotFather — хранить только здесь (git-ignored)
+echo 'TG_BOT_TOKEN=<токен>' > backend/.env.docbot
+docker compose up -d docbot
+docker compose logs -f docbot   # ожидаемо: "Document bot starting…"
+```
+
+Qdrant общий с основным сервисом; собственные коллекции бота регистрируются
+в таблице `docbot_collections` (в `/collections` показываются только они).
+
+### Команды и сценарии
+
+| Действие | Как |
+|----------|-----|
+| Создать коллекцию и подключить чат | `/new <имя>` |
+| Список моих коллекций | `/collections` |
+| Переключить коллекцию | `/use <имя>` |
+| Привязать чат по ссылке | `https://t.me/<bot>?start=<collection>` |
+| Добавить документ | файл PDF/Excel в чат **или** Google-ссылка сообщением |
+| Добавить Google-документ по ссылке | `/add <ссылка>` |
+| Список документов | `/docs` |
+| Удалить документ | `/del <номер>` |
+| Ответ на вопрос | обычный текст в чате |
+
+Лимиты: файлы PDF/XLSX до 10 МБ; Google-документ должен быть опубликован
+(*Файл → Доступ → Все, у кого есть ссылка → Читатель*). Индексация идёт в фоне:
+бот отвечает «⏳ Обрабатываю…» и редактирует сообщение по готовности.
+
+> ⚠️ `TG_BOT_TOKEN` документ-бота — **другой** токен, чем у основного бота
+> (`backend/.env`). Не переиспользуйте один токен на два сервиса.
+
 ## 🧪 Тестирование
 
 ```bash
@@ -199,7 +241,8 @@ cd backend && pip install -r requirements.txt && pytest tests/ -v
 ```
 
 Набор тестов покрывает: health, аутентификацию, чат/RAG-конвейер, индексацию,
-подключение к Qdrant и Telegram-бота (роутинг, привязки, стриминг, лимиты).
+подключение к Qdrant, Telegram-бота (роутинг, привязки, стриминг, лимиты)
+и документ-бота (файлы, Google-ссылки, команды, фоновая индексация).
 
 ## 📄 Лицензия
 
