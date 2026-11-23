@@ -2,8 +2,11 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies for Playwright
+# libatomic1: the bundled Playwright node driver fails to start without it
+# (new python:3.11-slim bases no longer ship it).
 RUN apt-get update && apt-get install -y \
     wget \
+    libatomic1 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
