@@ -154,7 +154,7 @@ def rag_mocks(monkeypatch):
         state["search_calls"] += 1
         return [{"text": "Падел-корты России: 28 кортов в Москве", "url": "https://x", "score": 0.9}]
 
-    def fake_stream(question, snippets, usage=None):
+    def fake_stream(question, snippets, usage=None, system_prompt=None):
         state["stream_calls"] += 1
         if usage is not None:
             usage["total_tokens"] = 17
@@ -296,7 +296,7 @@ class TestAnswerFlow:
     async def test_llm_failure_sends_error_message(self, session_factory, rag_mocks, monkeypatch):
         import app.telegram_bot as tb
 
-        def broken_stream(question, snippets, usage=None):
+        def broken_stream(question, snippets, usage=None, system_prompt=None):
             raise RuntimeError("llm down")
             yield  # pragma: no cover
 
