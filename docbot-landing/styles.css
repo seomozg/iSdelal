@@ -134,12 +134,6 @@ code {
 
 .btn-light { background: #fff; color: var(--accent-600); }
 
-.btn-outline-light {
-  background: transparent;
-  color: #fff;
-  border: 1.5px solid rgba(255, 255, 255, 0.7);
-}
-
 /* ------------------------------------------------ hero */
 
 .hero {
@@ -215,6 +209,39 @@ code {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* ------------------------------------------------ use-cases strip */
+
+.strip {
+  margin-top: 52px;
+  text-align: center;
+}
+
+.strip-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+.strip-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.tag {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 14.5px;
+  font-weight: 600;
 }
 
 /* ------------------------------------------------ chat mockup */
@@ -377,33 +404,6 @@ code {
 
 .step p { font-size: 14.5px; color: var(--muted); margin: 0; }
 
-/* ------------------------------------------------ pipeline */
-
-.pipeline {
-  margin-top: 34px;
-  padding: 16px 18px;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(124, 58, 237, 0.08));
-  border: 1px dashed #c7d4f3;
-  border-radius: var(--radius);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 8px 10px;
-}
-
-.pipe-chip {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 7px 14px;
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.pipe-arrow { color: var(--accent); font-weight: 700; }
-
 /* ------------------------------------------------ cards */
 
 .grid {
@@ -412,9 +412,8 @@ code {
   gap: 18px;
 }
 
-/* semantic hooks: slightly tighter columns so 4 use-cases fit a row */
+/* semantic hook: slightly tighter columns so cards wrap nicely */
 .cards { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
-.usecases { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
 
 .card {
   background: var(--surface);
